@@ -254,6 +254,20 @@ object DoseSchedulerCalculator {
         }
     }
 
+    const val DEFAULT_ACTION_LEAD_MINUTES = 15L
+
+    fun isActionWindowOpen(
+        dose: ScheduledDoseItem,
+        nowMillis: Long,
+        leadMinutes: Long = DEFAULT_ACTION_LEAD_MINUTES
+    ): Boolean {
+        return when (dose.status) {
+            DoseStatus.TAKEN, DoseStatus.SKIPPED -> false
+            DoseStatus.SNOOZED, DoseStatus.MISSED -> true
+            DoseStatus.PENDING -> nowMillis >= dose.effectiveTriggerMillis - TimeUnit.MINUTES.toMillis(leadMinutes)
+        }
+    }
+
     fun doseAlarmRequestCode(scheduleId: Long): Int =
         (scheduleId.toInt() and 0x00FFFFFF) or 0x10000000
 

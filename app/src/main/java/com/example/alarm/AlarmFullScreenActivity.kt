@@ -270,7 +270,10 @@ private fun FullScreenAlarmContent(
                         .height(58.dp)
                         .testTag("alarm_take_button"),
                     shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldTaken)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = EmeraldTaken,
+                        contentColor = androidx.compose.ui.graphics.Color.White
+                    )
                 ) {
                     Icon(Icons.Rounded.CheckCircle, contentDescription = null)
                     Spacer(Modifier.size(10.dp))

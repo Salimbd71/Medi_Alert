@@ -213,7 +213,7 @@ jobs:
             cp "app/build/outputs/apk/debug/app-debug.apk" "dist/medi-alert-v${VER}-debug.apk"
           fi
           if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
-            cp "app/build/outputs/apk/release/app-release.apk" "dist/medi-alert-v${VER}-release.apk"
+            cp "app/build/outputs/apk/release/app-release.apk" "dist/medi-alert-release.apk"
           fi
           if [ -f "app/build/outputs/bundle/release/app-release.aab" ]; then
             cp "app/build/outputs/bundle/release/app-release.aab" "dist/medi-alert-v${VER}-release.aab"
@@ -252,6 +252,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: "Medi Alert ${{ steps.version.outputs.tag }}"
+          make_latest: true
           generate_release_notes: true
           files: dist/*
 

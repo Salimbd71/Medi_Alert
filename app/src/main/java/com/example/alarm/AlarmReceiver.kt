@@ -72,6 +72,8 @@ class AlarmReceiver : BroadcastReceiver() {
                                 medicine = medicine,
                                 patient = patient,
                                 schedule = schedule,
+                                epochDay = epochDay,
+                                scheduledMillis = scheduledMillis,
                                 language = prefs.language
                             )
                             AlarmScheduler(context, db, prefsRepo).rescheduleAll()

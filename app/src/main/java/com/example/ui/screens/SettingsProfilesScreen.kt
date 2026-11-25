@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,16 +29,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Fingerprint
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.RecordVoiceOver
 import androidx.compose.material.icons.rounded.Restore
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -63,13 +68,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.BuildConfig
+import com.example.R
 import com.example.data.model.AppLanguage
 import com.example.data.model.PatientEntity
 import com.example.data.model.ThemeMode
@@ -441,6 +450,7 @@ fun SettingsProfilesScreen(
 
                     PermissionDiagnosticRow(
                         title = strings.batteryOptPerm,
+                        subtitle = if (!health.isIgnoringBatteryOptimizations) strings.batteryOptHint else null,
                         isGranted = health.isIgnoringBatteryOptimizations,
                         grantedLabel = strings.granted,
                         fixLabel = strings.needsAttention,
@@ -548,6 +558,175 @@ fun SettingsProfilesScreen(
                 }
             }
         }
+
+        // About Section with Top Border Line
+        item(key = "about_section") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("about_section_card")
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Info,
+                                    contentDescription = strings.aboutSection,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = strings.aboutSection,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            StatusPill(
+                                text = "${strings.versionLabel} ${
+                                    TimeFormatter.localizeDigits(BuildConfig.VERSION_NAME, prefs.language)
+                                }",
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.testTag("about_version_badge")
+                            )
+                        }
+
+                        Text(
+                            text = strings.developerCredit,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.testTag("about_developer_text")
+                        )
+
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AboutIconAction(
+                                containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                testTag = "about_call_button",
+                                onClick = {
+                                    runCatching {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_DIAL, Uri.parse("tel:01737462871"))
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Call,
+                                    contentDescription = strings.callDeveloperDesc,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            AboutIconAction(
+                                containerColor = EmeraldTaken.copy(alpha = 0.15f),
+                                borderColor = EmeraldTaken.copy(alpha = 0.38f),
+                                testTag = "about_whatsapp_button",
+                                onClick = {
+                                    runCatching {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/8801737462871"))
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_whatsapp),
+                                    contentDescription = strings.whatsappDeveloperDesc,
+                                    tint = EmeraldTaken,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            AboutIconAction(
+                                containerColor = Color(0xFF1877F2).copy(alpha = 0.14f),
+                                borderColor = Color(0xFF1877F2).copy(alpha = 0.38f),
+                                testTag = "about_facebook_button",
+                                onClick = {
+                                    runCatching {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW, Uri.parse("https://fb.com/salim.naogaon"))
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_facebook),
+                                    contentDescription = strings.facebookDeveloperDesc,
+                                    tint = Color(0xFF1877F2),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            AboutIconAction(
+                                containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f),
+                                borderColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.38f),
+                                testTag = "about_share_button",
+                                onClick = {
+                                    runCatching {
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_SUBJECT, strings.appName)
+                                            putExtra(Intent.EXTRA_TEXT, strings.shareAppMessage)
+                                        }
+                                        context.startActivity(
+                                            Intent.createChooser(shareIntent, strings.shareAppDesc)
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Share,
+                                    contentDescription = strings.shareAppDesc,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (showPatientDialog) {
@@ -575,6 +754,7 @@ fun SettingsProfilesScreen(
 @Composable
 private fun PermissionDiagnosticRow(
     title: String,
+    subtitle: String? = null,
     isGranted: Boolean,
     grantedLabel: String,
     fixLabel: String,
@@ -600,8 +780,18 @@ private fun PermissionDiagnosticRow(
                 tint = if (isGranted) EmeraldTaken else AmberWarning,
                 modifier = Modifier.size(20.dp)
             )
-            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyMedium)
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
+        Spacer(Modifier.width(8.dp))
         StatusPill(
             text = if (isGranted) grantedLabel else fixLabel,
             containerColor = if (isGranted) EmeraldTaken.copy(alpha = 0.16f) else AmberWarning.copy(alpha = 0.18f),
@@ -736,3 +926,26 @@ private fun SetPinDialog(
         }
     )
 }
+
+@Composable
+private fun AboutIconAction(
+    containerColor: Color,
+    borderColor: Color,
+    testTag: String,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(containerColor)
+            .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .testTag(testTag),
+        contentAlignment = Alignment.Center
+    ) {
+        icon()
+    }
+}
+

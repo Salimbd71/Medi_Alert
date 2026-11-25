@@ -349,6 +349,7 @@ fun HistoryReportsScreen(
             ) { dose ->
                 DoseTimelineCard(
                     dose = dose,
+                    nowMillis = uiState.currentTimeMillis,
                     language = language,
                     onTake = { onTakeDose(dose) },
                     onSnooze = { mins -> onSnoozeDose(dose, mins) },

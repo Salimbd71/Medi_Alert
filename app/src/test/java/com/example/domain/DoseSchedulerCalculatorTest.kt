@@ -167,4 +167,41 @@ class DoseSchedulerCalculatorTest {
         assertNotEquals(missedCode, snoozeCode)
         assertTrue(doseCode > 0)
     }
+
+    @Test
+    fun `isActionWindowOpen unlocks only 15 minutes before pending dose`() {
+        val day = DoseSchedulerCalculator.toEpochDay(2026, 10, 25)
+        val patient = PatientEntity(id = 1L, name = "Self")
+        val med = MedicineEntity(id = 1L, patientId = 1L, name = "Napa", startDateEpochDay = day)
+        val sched = ScheduleEntity(id = 1L, medicineId = 1L, hour = 23, minute = 0)
+        val trigger = DoseSchedulerCalculator.triggerMillisForEpochDay(day, 23, 0, utc)
+        val pendingDose = com.example.data.model.ScheduledDoseItem(
+            schedule = sched,
+            medicine = med,
+            patient = patient,
+            doseLog = null,
+            scheduledDateEpochDay = day,
+            scheduledTimeMillis = trigger,
+            effectiveTriggerMillis = trigger,
+            status = DoseStatus.PENDING
+        )
+
+        val eightPm = DoseSchedulerCalculator.triggerMillisForEpochDay(day, 20, 0, utc)
+        val tenFortyFourPm = DoseSchedulerCalculator.triggerMillisForEpochDay(day, 22, 44, utc)
+        val tenFortyFivePm = DoseSchedulerCalculator.triggerMillisForEpochDay(day, 22, 45, utc)
+        val elevenTenPm = DoseSchedulerCalculator.triggerMillisForEpochDay(day, 23, 10, utc)
+
+        assertEquals(false, DoseSchedulerCalculator.isActionWindowOpen(pendingDose, eightPm))
+        assertEquals(false, DoseSchedulerCalculator.isActionWindowOpen(pendingDose, tenFortyFourPm))
+        assertEquals(true, DoseSchedulerCalculator.isActionWindowOpen(pendingDose, tenFortyFivePm))
+        assertEquals(true, DoseSchedulerCalculator.isActionWindowOpen(pendingDose, elevenTenPm))
+        assertEquals(
+            true,
+            DoseSchedulerCalculator.isActionWindowOpen(pendingDose.copy(status = DoseStatus.MISSED), elevenTenPm)
+        )
+        assertEquals(
+            false,
+            DoseSchedulerCalculator.isActionWindowOpen(pendingDose.copy(status = DoseStatus.TAKEN), elevenTenPm)
+        )
+    }
 }

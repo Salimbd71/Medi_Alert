@@ -70,6 +70,7 @@ import com.example.data.model.MedicineEntity
 import com.example.data.model.MedicineType
 import com.example.data.model.ScheduledDoseItem
 import com.example.data.model.TimeOfDayBucket
+import com.example.domain.DoseSchedulerCalculator
 import com.example.ui.strings.LocalAppStrings
 import com.example.ui.theme.AdherenceRingChart
 import com.example.ui.theme.AmberWarning
@@ -395,6 +396,7 @@ fun DashboardScreen(
                     ) { dose ->
                         DoseTimelineCard(
                             dose = dose,
+                            nowMillis = uiState.currentTimeMillis,
                             language = language,
                             onTake = { onTakeDose(dose) },
                             onSnooze = { mins -> onSnoozeDose(dose, mins) },
@@ -410,6 +412,7 @@ fun DashboardScreen(
 @Composable
 fun DoseTimelineCard(
     dose: ScheduledDoseItem,
+    nowMillis: Long,
     language: AppLanguage,
     onTake: () -> Unit,
     onSnooze: (Int) -> Unit,
@@ -417,6 +420,7 @@ fun DoseTimelineCard(
 ) {
     val strings = LocalAppStrings.current
     var showSnoozeMenu by remember { mutableStateOf(false) }
+    val actionWindowOpen = DoseSchedulerCalculator.isActionWindowOpen(dose, nowMillis)
 
     val (statusBg, statusFg) = when (dose.status) {
         DoseStatus.TAKEN -> EmeraldTaken.copy(alpha = 0.16f) to EmeraldTaken
@@ -504,7 +508,7 @@ fun DoseTimelineCard(
                 }
             }
 
-            AnimatedVisibility(visible = dose.status == DoseStatus.PENDING || dose.status == DoseStatus.SNOOZED || dose.status == DoseStatus.MISSED) {
+            AnimatedVisibility(visible = actionWindowOpen) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -514,7 +518,10 @@ fun DoseTimelineCard(
                         modifier = Modifier
                             .weight(1f)
                             .testTag("take_dose_${dose.schedule.id}"),
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldTaken),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = EmeraldTaken,
+                            contentColor = Color.White
+                        ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -569,6 +576,30 @@ fun DoseTimelineCard(
                         Spacer(Modifier.width(4.dp))
                         Text(strings.skipAction)
                     }
+                }
+            }
+
+            AnimatedVisibility(visible = !actionWindowOpen && dose.status == DoseStatus.PENDING) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = strings.actionsUnlockHint,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

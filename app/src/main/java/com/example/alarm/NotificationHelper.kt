@@ -186,19 +186,46 @@ object NotificationHelper {
         medicine: MedicineEntity,
         patient: PatientEntity,
         schedule: ScheduleEntity,
+        epochDay: Long,
+        scheduledMillis: Long,
         language: AppLanguage
     ) {
         if (!hasNotificationPermission(context)) return
         createChannels(context)
 
+        val notifId = missedNotificationId(scheduleId)
         val openAppIntent = PendingIntent.getActivity(
             context,
-            missedNotificationId(scheduleId),
+            notifId,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
+        val takenIntent = AlarmActionReceiver.createActionIntent(
+            context = context,
+            action = AlarmConstants.ACTION_MARK_TAKEN,
+            scheduleId = scheduleId,
+            medicineId = medicine.id,
+            patientId = patient.id,
+            epochDay = epochDay,
+            scheduledMillis = scheduledMillis,
+            notificationId = notifId
+        )
+        val snoozeIntent = AlarmActionReceiver.createActionIntent(
+            context = context,
+            action = AlarmConstants.ACTION_SNOOZE_10,
+            scheduleId = scheduleId,
+            medicineId = medicine.id,
+            patientId = patient.id,
+            epochDay = epochDay,
+            scheduledMillis = scheduledMillis,
+            notificationId = notifId
+        )
+
+        val takenLabel = if (language == AppLanguage.BANGLA) "এখনই খেয়েছি" else "Mark Taken"
+        val snoozeLabel = if (language == AppLanguage.BANGLA) "স্নুজ ১০ মি." else "Snooze 10m"
 
         val timeText = TimeFormatter.formatTime(schedule.hour, schedule.minute, language)
         val title = if (language == AppLanguage.BANGLA) {
@@ -217,12 +244,14 @@ object NotificationHelper {
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(openAppIntent)
+            .addAction(0, takenLabel, takenIntent)
+            .addAction(0, snoozeLabel, snoozeIntent)
             .build()
 
-        NotificationManagerCompat.from(context).notify(missedNotificationId(scheduleId), notification)
+        NotificationManagerCompat.from(context).notify(notifId, notification)
     }
 
     fun showLowStockNotification(

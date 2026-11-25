@@ -86,12 +86,20 @@ object PermissionHelper {
     }
 
     fun openBatteryOptimizationSettings(context: Context) {
-        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val directIntent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:${context.packageName}")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            val started = runCatching {
+                context.startActivity(directIntent)
+            }.isSuccess
+            if (!started) {
+                launchSafely(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }
         } else {
-            appSettingsIntent(context)
+            launchSafely(context, appSettingsIntent(context))
         }
-        launchSafely(context, intent)
     }
 
     fun openNotificationSettings(context: Context) {

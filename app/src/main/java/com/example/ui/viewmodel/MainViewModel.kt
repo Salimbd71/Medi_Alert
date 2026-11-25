@@ -64,7 +64,8 @@ data class MediAlertUiState(
     val allDoseLogs: List<DoseLogEntity> = emptyList(),
     val searchQuery: String = "",
     val selectedMedicineTypeFilter: MedicineType? = null,
-    val permissionHealth: PermissionHealthState = PermissionHealthState(true, true, true, true)
+    val permissionHealth: PermissionHealthState = PermissionHealthState(true, true, true, true),
+    val currentTimeMillis: Long = System.currentTimeMillis()
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -235,7 +236,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             allDoseLogs = core.logs,
             searchQuery = filters.query,
             selectedMedicineTypeFilter = filters.typeFilter,
-            permissionHealth = filters.permissionHealth
+            permissionHealth = filters.permissionHealth,
+            currentTimeMillis = nowMillis
         )
     }.stateIn(
         scope = viewModelScope,

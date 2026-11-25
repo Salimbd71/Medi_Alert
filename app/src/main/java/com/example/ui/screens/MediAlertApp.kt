@@ -7,16 +7,27 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Home
@@ -27,7 +38,6 @@ import androidx.compose.material.icons.rounded.CalendarMonth
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Medication
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,22 +49,33 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
 import com.example.data.model.AppLanguage
 import com.example.data.model.MedicineEntity
 import com.example.data.model.MedicineWithSchedules
@@ -92,6 +113,17 @@ fun MediAlertApp(viewModel: MainViewModel) {
         contract = ActivityResultContracts.RequestPermission()
     ) {
         viewModel.refreshPermissionsHealth()
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshPermissionsHealth()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     LaunchedEffect(Unit) {
@@ -166,7 +198,8 @@ fun MediAlertApp(viewModel: MainViewModel) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     if (useNavRail) {
                         NavigationRail(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         ) {
                             Spacer(Modifier.size(16.dp))
                             MainTab.entries.forEach { tab ->
@@ -189,24 +222,30 @@ fun MediAlertApp(viewModel: MainViewModel) {
 
                     Scaffold(
                         containerColor = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onBackground,
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                         topBar = {
-                            CenterAlignedTopAppBar(
-                                title = {
-                                    Text(
-                                        text = when (currentTab) {
-                                            MainTab.TODAY -> strings.appName
-                                            MainTab.MEDICINES -> strings.navMedicines
-                                            MainTab.HISTORY -> strings.navHistory
-                                            MainTab.SETTINGS -> strings.navSettings
-                                        },
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                            MediAlertTopBar(
+                                title = when (currentTab) {
+                                    MainTab.TODAY -> strings.appName
+                                    MainTab.MEDICINES -> strings.navMedicines
+                                    MainTab.HISTORY -> strings.navHistory
+                                    MainTab.SETTINGS -> strings.navSettings
                                 },
-                                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                                    containerColor = Color.Transparent
-                                )
+                                subtitle = if (currentTab == MainTab.TODAY) {
+                                    if (prefs.language == AppLanguage.BANGLA) "স্মার্ট অফলাইন পিল ট্র্যাকার" else "Smart Offline Pill Tracker"
+                                } else {
+                                    strings.appName
+                                },
+                                language = prefs.language,
+                                onToggleLanguage = {
+                                    val next = if (prefs.language == AppLanguage.ENGLISH) {
+                                        AppLanguage.BANGLA
+                                    } else {
+                                        AppLanguage.ENGLISH
+                                    }
+                                    viewModel.setLanguage(next)
+                                }
                             )
                         },
                         floatingActionButton = {
@@ -228,6 +267,7 @@ fun MediAlertApp(viewModel: MainViewModel) {
                             if (!useNavRail) {
                                 NavigationBar(
                                     containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
                                 ) {
                                     MainTab.entries.forEach { tab ->
@@ -386,3 +426,96 @@ private fun tabLabel(tab: MainTab, strings: com.example.ui.strings.AppStrings): 
     MainTab.HISTORY -> strings.navHistory
     MainTab.SETTINGS -> strings.navSettings
 }
+
+@Composable
+private fun MediAlertTopBar(
+    title: String,
+    subtitle: String,
+    language: AppLanguage,
+    onToggleLanguage: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 2.dp,
+        shadowElevation = 4.dp
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(68.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.img_topbar_art),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(0.32f)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                            )
+                        )
+                    )
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_medi_alert_fg),
+                    contentDescription = title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f))
+                        .clickable(onClick = onToggleLanguage)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .testTag("topbar_language_toggle"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (language == AppLanguage.BANGLA) "EN" else "বাংলা",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+

@@ -79,7 +79,7 @@ base64 -w 0 my-upload-key.jks > keystore.base64.txt
 
 ### ফলাফল:
 - সব সাইনিং সিক্রেট সঠিক থাকলে ওয়ার্কফ্লো সফলভাবে টেস্ট চালাবে, APK/AAB বিল্ড করবে এবং **Workflow Summary**-তে ভার্সন, টেস্ট স্ট্যাটাস ও ফাইলের তালিকা দেখাবে।
-- তৈরি হওয়া `medi-alert-vX.Y.Z-release.apk` ও `medi-alert-vX.Y.Z-release.aab` ফাইলগুলো **Actions Artifacts** এবং **GitHub Releases** পেজে ডাউনলোডের জন্য পাওয়া যাবে।
+- তৈরি হওয়া `medi-alert-release.apk` ও `medi-alert-vX.Y.Z-release.aab` ফাইলগুলো **Actions Artifacts** এবং **GitHub Releases** পেজে ডাউনলোডের জন্য পাওয়া যাবে। প্রতিটি নতুন রিলিজে ফিক্সড ডাউনলোড লিংক থাকবে: `https://github.com/Salimbd71/Medi_Alert/releases/latest/download/medi-alert-release.apk`।
 
 ---
 

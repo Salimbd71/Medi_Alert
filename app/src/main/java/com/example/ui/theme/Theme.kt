@@ -1,8 +1,10 @@
 package com.example.ui.theme
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
@@ -11,9 +13,12 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import com.example.data.model.AppLanguage
 import com.example.data.model.ThemeMode
 import com.example.ui.strings.LocalAppStrings
@@ -38,6 +43,11 @@ private val MediLightColorScheme = lightColorScheme(
     onSurface = LightOnSurface,
     surfaceVariant = LightSurfaceVariant,
     onSurfaceVariant = LightOnSurfaceVariant,
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color(0xFFF6FBFC),
+    surfaceContainer = Color(0xFFEAF5F7),
+    surfaceContainerHigh = Color(0xFFE1EFF2),
+    surfaceContainerHighest = Color(0xFFD6E9EC),
     outline = Color(0xFFB3D2D6),
     error = CoralAlert,
     onError = Color.White
@@ -62,6 +72,11 @@ private val MediDarkColorScheme = darkColorScheme(
     onSurface = DarkOnSurface,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceContainerLowest = Color(0xFF061013),
+    surfaceContainerLow = Color(0xFF0C1B20),
+    surfaceContainer = Color(0xFF11252C),
+    surfaceContainerHigh = Color(0xFF162E36),
+    surfaceContainerHighest = Color(0xFF1C3841),
     outline = Color(0xFF284E57),
     error = Color(0xFFFF8A78),
     onError = Color(0xFF470D05)
@@ -96,12 +111,28 @@ fun MediAlertTheme(
         else -> MediLightColorScheme
     }
 
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window
+            if (window != null) {
+                val controller = WindowCompat.getInsetsController(window, view)
+                controller.isAppearanceLightStatusBars = !darkTheme
+                controller.isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
+    }
+
     CompositionLocalProvider(LocalAppStrings provides stringsFor(language)) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = buildMediAlertTypography(language),
-            shapes = MediAlertShapes,
-            content = content
-        )
+            shapes = MediAlertShapes
+        ) {
+            CompositionLocalProvider(
+                LocalContentColor provides colorScheme.onBackground,
+                content = content
+            )
+        }
     }
 }

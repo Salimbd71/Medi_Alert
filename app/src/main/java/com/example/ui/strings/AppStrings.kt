@@ -113,7 +113,17 @@ data class AppStrings(
     val backupErrorMsg: String,
     val pdfSavedMsg: String,
     val activeLabel: String,
-    val pausedLabel: String
+    val pausedLabel: String,
+    val actionsUnlockHint: String,
+    val batteryOptHint: String,
+    val aboutSection: String,
+    val versionLabel: String,
+    val developerCredit: String,
+    val callDeveloperDesc: String,
+    val whatsappDeveloperDesc: String,
+    val facebookDeveloperDesc: String,
+    val shareAppDesc: String,
+    val shareAppMessage: String
 ) {
     fun medicineType(type: MedicineType): String = when (type) {
         MedicineType.TABLET -> if (isBangla) "ট্যাবলেট" else "Tablet"
@@ -259,7 +269,17 @@ val EnglishStrings = AppStrings(
     backupErrorMsg = "Could not process backup file",
     pdfSavedMsg = "PDF report saved successfully",
     activeLabel = "Active",
-    pausedLabel = "Paused"
+    pausedLabel = "Paused",
+    actionsUnlockHint = "Take / Snooze / Skip unlock 15 min before dose",
+    batteryOptHint = "Tap to select Allow / Unrestricted background usage",
+    aboutSection = "About",
+    versionLabel = "Version",
+    developerCredit = "Developer: SLM Technology",
+    callDeveloperDesc = "Call Developer",
+    whatsappDeveloperDesc = "WhatsApp Developer",
+    facebookDeveloperDesc = "Facebook Profile",
+    shareAppDesc = "Share Medi Alert",
+    shareAppMessage = "Stay on top of your daily medicines with Medi Alert — smart offline pill reminders, multi-patient tracking, and stock alerts.\n\nDownload Latest APK:\nhttps://github.com/Salimbd71/Medi_Alert/releases/latest/download/medi-alert-release.apk"
 )
 
 val BanglaStrings = AppStrings(
@@ -367,7 +387,17 @@ val BanglaStrings = AppStrings(
     backupErrorMsg = "ব্যাকআপ ফাইল পড়া সম্ভব হয়নি",
     pdfSavedMsg = "PDF রিপোর্ট সফলভাবে সংরক্ষিত হয়েছে",
     activeLabel = "সক্রিয়",
-    pausedLabel = "বিরতি"
+    pausedLabel = "বিরতি",
+    actionsUnlockHint = "নির্ধারিত সময়ের ১৫ মি. আগে বাটনগুলো চালু হবে",
+    batteryOptHint = "ট্যাপ করে Allow বা Unrestricted নির্বাচন করুন",
+    aboutSection = "অ্যাপ সম্পর্কে",
+    versionLabel = "ভার্সন",
+    developerCredit = "Developer: SLM Technology",
+    callDeveloperDesc = "ডেভেলপারকে কল করুন",
+    whatsappDeveloperDesc = "হোয়াটসঅ্যাপে যোগাযোগ",
+    facebookDeveloperDesc = "ফেসবুক প্রোফাইল",
+    shareAppDesc = "অ্যাপ শেয়ার করুন",
+    shareAppMessage = "সঠিক সময়ে ওষুধ খেতে ব্যবহার করুন Medi Alert — স্মার্ট অফলাইন পিল রিমাইন্ডার, একাধিক রোগীর প্রোফাইল ও স্টক অ্যালার্ট।\n\nসর্বশেষ ভার্সন ডাউনলোড লিংক:\nhttps://github.com/Salimbd71/Medi_Alert/releases/latest/download/medi-alert-release.apk"
 )
 
 fun stringsFor(language: AppLanguage): AppStrings =
