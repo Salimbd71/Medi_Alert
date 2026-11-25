@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files-path name="prescriptions" path="prescriptions/" />
+    <files-path name="reports" path="reports/" />
+    <cache-path name="shared_exports" path="exports/" />
+</paths>

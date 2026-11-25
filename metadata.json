@@ -1,0 +1,8 @@
+{
+  "name": "Medi Alert",
+  "description": "Smart offline medication management app with multi-patient profiles, exact alarms, voice reminders, adherence analytics, prescription viewer, PIN/biometric lock, JSON backup, and home widget.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

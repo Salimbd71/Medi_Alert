@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">মেডি অ্যালার্ট</string>
+    <string name="widget_name">মেডি অ্যালার্ট পরবর্তী ডোজ</string>
+    <string name="widget_no_upcoming">আপাতত সব ডোজ সম্পন্ন</string>
+    <string name="widget_open_app">খুলুন</string>
+    <string name="notification_channel_alarm_name">ওষুধের অ্যালার্ম</string>
+    <string name="notification_channel_alarm_desc">নির্ধারিত ওষুধ খাওয়ার সময় অ্যালার্ম ও শব্দ সতর্কতা</string>
+    <string name="notification_channel_missed_name">মিসড ও রিফিল সতর্কতা</string>
+    <string name="notification_channel_missed_desc">মিসড ডোজ এবং কম স্টক সতর্কতা</string>
+</resources>

@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Medi Alert</string>
+    <string name="widget_name">Medi Alert Next Dose</string>
+    <string name="widget_no_upcoming">All doses completed for now</string>
+    <string name="widget_open_app">Open</string>
+    <string name="notification_channel_alarm_name">Medication Alarms</string>
+    <string name="notification_channel_alarm_desc">Urgent full-screen and sound alerts for scheduled medicines</string>
+    <string name="notification_channel_missed_name">Missed &amp; Refill Alerts</string>
+    <string name="notification_channel_missed_desc">Alerts for missed doses and low medicine stock</string>
+</resources>
