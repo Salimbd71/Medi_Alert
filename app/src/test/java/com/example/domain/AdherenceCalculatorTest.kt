@@ -76,4 +76,36 @@ class AdherenceCalculatorTest {
         )
         assertEquals(6, AdherenceCalculator.calculateDaysOfStockRemaining(med, enabledScheduleCount = 2))
     }
+
+    @Test
+    fun `calculateSummary returns 0 percent when weekly and monthly records are zero`() {
+        val today = DoseSchedulerCalculator.toEpochDay(2026, 10, 25)
+        val now = DoseSchedulerCalculator.triggerMillisForEpochDay(today, 12, 0, utc)
+
+        val weekly = AdherenceCalculator.calculateSummary(
+            period = ReportPeriod.WEEKLY,
+            anchorEpochDay = today,
+            medicinesWithSchedules = emptyList(),
+            allLogs = emptyList(),
+            patientsById = emptyMap(),
+            activePatientId = null,
+            nowMillis = now,
+            timeZone = utc
+        )
+        assertEquals(0, weekly.adherencePercent)
+        weekly.dailyBreakdown.forEach { assertEquals(0, it.percentage) }
+
+        val monthly = AdherenceCalculator.calculateSummary(
+            period = ReportPeriod.MONTHLY,
+            anchorEpochDay = today,
+            medicinesWithSchedules = emptyList(),
+            allLogs = emptyList(),
+            patientsById = emptyMap(),
+            activePatientId = null,
+            nowMillis = now,
+            timeZone = utc
+        )
+        assertEquals(0, monthly.adherencePercent)
+        monthly.dailyBreakdown.forEach { assertEquals(0, it.percentage) }
+    }
 }

@@ -16,7 +16,7 @@ data class DailyAdherencePoint(
     val missedOrSkippedCount: Int
 ) {
     val percentage: Int
-        get() = if (expectedCount <= 0) 100 else ((takenCount.toDouble() / expectedCount) * 100.0).roundToInt().coerceIn(0, 100)
+        get() = if (expectedCount <= 0) 0 else ((takenCount.toDouble() / expectedCount) * 100.0).roundToInt().coerceIn(0, 100)
 }
 
 data class AdherenceSummary(
@@ -95,7 +95,7 @@ object AdherenceCalculator {
 
         val denominator = taken + skipped + missed
         val adherencePercent = if (denominator == 0) {
-            if (totalScheduled == 0) 100 else 0
+            0
         } else {
             ((taken.toDouble() / denominator) * 100.0).roundToInt().coerceIn(0, 100)
         }

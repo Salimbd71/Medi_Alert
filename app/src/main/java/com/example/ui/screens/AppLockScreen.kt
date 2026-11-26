@@ -53,6 +53,7 @@ import com.example.util.TimeFormatter
 @Composable
 fun AppLockScreen(
     language: AppLanguage,
+    hasPinLock: Boolean,
     biometricEnabled: Boolean,
     onVerifyPin: (String) -> Boolean,
     onBiometricSuccess: () -> Unit
@@ -122,7 +123,11 @@ fun AppLockScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Lock,
+                            imageVector = if (!hasPinLock && canUseBiometric) {
+                                Icons.Rounded.Fingerprint
+                            } else {
+                                Icons.Rounded.Lock
+                            },
                             contentDescription = strings.securitySection,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(32.dp)
@@ -135,123 +140,125 @@ fun AppLockScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = strings.enterPinPrompt,
+                        text = if (hasPinLock) strings.enterPinPrompt else strings.unlockWithBiometric,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        repeat(4) { index ->
-                            val filled = index < enteredPin.length
-                            Box(
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (filled) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.surfaceVariant
-                                    )
-                                    .border(
-                                        1.dp,
-                                        MaterialTheme.colorScheme.outline,
-                                        CircleShape
-                                    )
+                    if (hasPinLock) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                            repeat(4) { index ->
+                                val filled = index < enteredPin.length
+                                Box(
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (filled) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        .border(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.outline,
+                                            CircleShape
+                                        )
+                                )
+                            }
+                        }
+
+                        AnimatedVisibility(visible = errorMessage) {
+                            Text(
+                                text = strings.wrongPinError,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CoralAlert
                             )
                         }
-                    }
 
-                    AnimatedVisibility(visible = errorMessage) {
-                        Text(
-                            text = strings.wrongPinError,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = CoralAlert
+                        val rows = listOf(
+                            listOf("1", "2", "3"),
+                            listOf("4", "5", "6"),
+                            listOf("7", "8", "9"),
+                            listOf("BIO", "0", "DEL")
                         )
-                    }
 
-                    val rows = listOf(
-                        listOf("1", "2", "3"),
-                        listOf("4", "5", "6"),
-                        listOf("7", "8", "9"),
-                        listOf("BIO", "0", "DEL")
-                    )
-
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        rows.forEach { row ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                row.forEach { key ->
-                                    when (key) {
-                                        "BIO" -> {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(64.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable(enabled = canUseBiometric) {
-                                                        launchBiometricPrompt()
-                                                    },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                if (canUseBiometric) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            rows.forEach { row ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    row.forEach { key ->
+                                        when (key) {
+                                            "BIO" -> {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(64.dp)
+                                                        .clip(CircleShape)
+                                                        .clickable(enabled = canUseBiometric) {
+                                                            launchBiometricPrompt()
+                                                        },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    if (canUseBiometric) {
+                                                        Icon(
+                                                            imageVector = Icons.Rounded.Fingerprint,
+                                                            contentDescription = strings.unlockWithBiometric,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(30.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            "DEL" -> {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(64.dp)
+                                                        .clip(CircleShape)
+                                                        .clickable {
+                                                            if (enteredPin.isNotEmpty()) {
+                                                                enteredPin = enteredPin.dropLast(1)
+                                                                errorMessage = false
+                                                            }
+                                                        }
+                                                        .testTag("pin_backspace"),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
                                                     Icon(
-                                                        imageVector = Icons.Rounded.Fingerprint,
-                                                        contentDescription = strings.unlockWithBiometric,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(30.dp)
+                                                        imageVector = Icons.AutoMirrored.Rounded.Backspace,
+                                                        contentDescription = strings.delete,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
                                             }
-                                        }
-                                        "DEL" -> {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(64.dp)
-                                                    .clip(CircleShape)
-                                                    .clickable {
-                                                        if (enteredPin.isNotEmpty()) {
-                                                            enteredPin = enteredPin.dropLast(1)
-                                                            errorMessage = false
-                                                        }
-                                                    }
-                                                    .testTag("pin_backspace"),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.AutoMirrored.Rounded.Backspace,
-                                                    contentDescription = strings.delete,
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                        else -> {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(64.dp)
-                                                    .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                                                    .clickable {
-                                                        if (enteredPin.length < 4) {
-                                                            val next = enteredPin + key
-                                                            enteredPin = next
-                                                            errorMessage = false
-                                                            if (next.length == 4) {
-                                                                if (!onVerifyPin(next)) {
-                                                                    errorMessage = true
-                                                                    enteredPin = ""
+                                            else -> {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(64.dp)
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+                                                        .clickable {
+                                                            if (enteredPin.length < 4) {
+                                                                val next = enteredPin + key
+                                                                enteredPin = next
+                                                                errorMessage = false
+                                                                if (next.length == 4) {
+                                                                    if (!onVerifyPin(next)) {
+                                                                        errorMessage = true
+                                                                        enteredPin = ""
+                                                                    }
                                                                 }
                                                             }
                                                         }
-                                                    }
-                                                    .testTag("pin_key_$key"),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = TimeFormatter.localizeDigits(key, language),
-                                                    style = MaterialTheme.typography.titleLarge,
-                                                    fontWeight = FontWeight.Bold
-                                                )
+                                                        .testTag("pin_key_$key"),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = TimeFormatter.localizeDigits(key, language),
+                                                        style = MaterialTheme.typography.titleLarge,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -260,7 +267,7 @@ fun AppLockScreen(
                         }
                     }
 
-                    if (canUseBiometric) {
+                    if (canUseBiometric || !hasPinLock) {
                         Spacer(Modifier.height(4.dp))
                         FilledTonalButton(
                             onClick = { launchBiometricPrompt() },

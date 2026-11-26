@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.biometric.BiometricManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,20 +20,26 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lock
@@ -42,6 +49,7 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.RecordVoiceOver
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -105,9 +113,10 @@ fun SettingsProfilesScreen(
     onTestVoiceClick: () -> Unit,
     onMissedWindowChange: (Int) -> Unit,
     onRequestNotificationPermission: () -> Unit,
-    onEnableAppLock: (String, Boolean) -> Unit,
-    onDisableAppLock: () -> Unit,
+    onSetPinLock: (String) -> Unit,
+    onClearPinLock: () -> Unit,
     onBiometricToggle: (Boolean) -> Unit,
+    onShowMessage: (String) -> Unit,
     onExportJsonBackup: () -> Unit,
     onRestoreJsonBackup: () -> Unit
 ) {
@@ -118,6 +127,18 @@ fun SettingsProfilesScreen(
     var editingPatient by remember { mutableStateOf<PatientEntity?>(null) }
     var showPatientDialog by remember { mutableStateOf(false) }
     var showSetPinDialog by remember { mutableStateOf(false) }
+    var legalDialogContent by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    fun openMailDeveloper() {
+        runCatching {
+            val mailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:salimbd.ga@gmail.com")
+                putExtra(Intent.EXTRA_EMAIL, arrayOf("salimbd.ga@gmail.com"))
+                putExtra(Intent.EXTRA_SUBJECT, "${strings.appName} - Support / Feedback")
+            }
+            context.startActivity(Intent.createChooser(mailIntent, strings.mailMeLabel))
+        }
+    }
 
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -460,8 +481,13 @@ fun SettingsProfilesScreen(
             }
         }
 
-        // Security: PIN & Biometric App Lock
+        // Security: Flexible PIN OR Fingerprint / Biometric App Lock
         item(key = "security_section") {
+            val biometricAvailable = remember(context) {
+                BiometricManager.from(context)
+                    .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
+            }
+
             GlassCard(modifier = Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
@@ -481,41 +507,71 @@ fun SettingsProfilesScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Rounded.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text(strings.appLockTitle, style = MaterialTheme.typography.bodyLarge)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(strings.pinLockTitle, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    text = if (prefs.hasPinLock) strings.pinLockSetDesc else strings.pinLockUnsetDesc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                        Switch(
-                            checked = prefs.appLockEnabled,
-                            onCheckedChange = { enabled ->
-                                if (enabled) {
-                                    showSetPinDialog = true
-                                } else {
-                                    onDisableAppLock()
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (prefs.hasPinLock) {
+                                TextButton(
+                                    onClick = { showSetPinDialog = true },
+                                    modifier = Modifier.testTag("change_pin_button")
+                                ) {
+                                    Text(strings.changePinLabel)
                                 }
-                            },
-                            modifier = Modifier.testTag("app_lock_switch")
-                        )
-                    }
-
-                    if (prefs.appLockEnabled) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(Icons.Rounded.Fingerprint, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Text(strings.biometricUnlock, style = MaterialTheme.typography.bodyMedium)
                             }
                             Switch(
-                                checked = prefs.biometricEnabled,
-                                onCheckedChange = onBiometricToggle,
-                                modifier = Modifier.testTag("biometric_switch")
+                                checked = prefs.hasPinLock,
+                                onCheckedChange = { enabled ->
+                                    if (enabled) {
+                                        showSetPinDialog = true
+                                    } else {
+                                        onClearPinLock()
+                                    }
+                                },
+                                modifier = Modifier.testTag("pin_lock_switch")
                             )
                         }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Rounded.Fingerprint, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(strings.biometricUnlock, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    text = strings.biometricLockDesc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = prefs.biometricEnabled,
+                            onCheckedChange = { enabled ->
+                                if (enabled && !biometricAvailable) {
+                                    onShowMessage(strings.biometricUnavailableMsg)
+                                } else {
+                                    onBiometricToggle(enabled)
+                                }
+                            },
+                            modifier = Modifier.testTag("biometric_switch")
+                        )
                     }
                 }
             }
@@ -554,6 +610,86 @@ fun SettingsProfilesScreen(
                             Spacer(Modifier.width(6.dp))
                             Text(strings.restoreJsonBackup, style = MaterialTheme.typography.labelMedium)
                         }
+                    }
+                }
+            }
+        }
+
+        // Play Store-Friendly Legal Section (Privacy Policy, Terms & Conditions, Mail Me)
+        item(key = "legal_section") {
+            GlassCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("legal_section_card")
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = strings.legalSectionTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                legalDialogContent = strings.privacyPolicyTitle to strings.privacyPolicyBody
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp)
+                            .testTag("privacy_policy_row"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = strings.privacyPolicyTitle,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                legalDialogContent = strings.termsConditionsTitle to strings.termsConditionsBody
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp)
+                            .testTag("terms_conditions_row"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(Icons.Rounded.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = strings.termsConditionsTitle,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    FilledTonalButton(
+                        onClick = ::openMailDeveloper,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("legal_mail_me_button")
+                    ) {
+                        Icon(Icons.Rounded.Email, contentDescription = strings.mailMeLabel, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(strings.mailMeLabel)
                     }
                 }
             }
@@ -743,9 +879,43 @@ fun SettingsProfilesScreen(
     if (showSetPinDialog) {
         SetPinDialog(
             onDismiss = { showSetPinDialog = false },
-            onConfirm = { pin, biometric ->
-                onEnableAppLock(pin, biometric)
+            onConfirm = { pin ->
+                onSetPinLock(pin)
                 showSetPinDialog = false
+            }
+        )
+    }
+
+    legalDialogContent?.let { (title, body) ->
+        AlertDialog(
+            onDismissRequest = { legalDialogContent = null },
+            title = { Text(title, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = body,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = { openMailDeveloper() }) {
+                    Icon(Icons.Rounded.Email, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(strings.mailMeLabel)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { legalDialogContent = null }) {
+                    Text(strings.closeLabel)
+                }
             }
         )
     }
@@ -877,11 +1047,10 @@ private fun AddEditPatientDialog(
 @Composable
 private fun SetPinDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, Boolean) -> Unit
+    onConfirm: (String) -> Unit
 ) {
     val strings = LocalAppStrings.current
     var pin by remember { mutableStateOf("") }
-    var useBiometric by remember { mutableStateOf(true) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -902,19 +1071,11 @@ private fun SetPinDialog(
                         .fillMaxWidth()
                         .testTag("setup_pin_input")
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(strings.biometricUnlock, style = MaterialTheme.typography.bodyMedium)
-                    Switch(checked = useBiometric, onCheckedChange = { useBiometric = it })
-                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onConfirm(pin, useBiometric) },
+                onClick = { onConfirm(pin) },
                 enabled = pin.length == 4,
                 modifier = Modifier.testTag("confirm_pin_button")
             ) {

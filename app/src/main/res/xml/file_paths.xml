@@ -3,4 +3,6 @@
     <files-path name="prescriptions" path="prescriptions/" />
     <files-path name="reports" path="reports/" />
     <cache-path name="shared_exports" path="exports/" />
+    <external-files-path name="external_downloads" path="Download/" />
+    <external-path name="public_downloads" path="Download/Medi_Alert/" />
 </paths>

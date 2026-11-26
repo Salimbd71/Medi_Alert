@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,6 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Button
@@ -44,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.model.AppLanguage
 import com.example.data.model.DoseStatus
@@ -60,6 +68,7 @@ import com.example.ui.theme.GlassCard
 import com.example.ui.theme.IndigoMuted
 import com.example.ui.theme.StatusPill
 import com.example.ui.viewmodel.MediAlertUiState
+import com.example.util.SavedPdfReport
 import com.example.util.TimeFormatter
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -71,6 +80,7 @@ fun HistoryReportsScreen(
     onSelectPeriod: (ReportPeriod) -> Unit,
     onSelectDateEpochDay: (Long) -> Unit,
     onSavePdfReport: () -> Unit,
+    onOpenSavedPdf: (SavedPdfReport) -> Unit,
     onSharePdfReport: () -> Unit,
     onTakeDose: (ScheduledDoseItem) -> Unit,
     onSnoozeDose: (ScheduledDoseItem, Int) -> Unit,
@@ -129,31 +139,36 @@ fun HistoryReportsScreen(
                                 label = strings.period(summary.period),
                                 size = 96.dp
                             )
+                            val totalDoses = (summary.takenCount + summary.skippedCount + summary.missedCount + summary.pendingCount)
                             Column(
                                 modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 StatLine(
                                     label = strings.takenCountLabel,
                                     count = summary.takenCount,
+                                    totalCount = totalDoses,
                                     color = EmeraldTaken,
                                     language = language
                                 )
                                 StatLine(
                                     label = strings.skippedCountLabel,
                                     count = summary.skippedCount,
+                                    totalCount = totalDoses,
                                     color = IndigoMuted,
                                     language = language
                                 )
                                 StatLine(
                                     label = strings.missedCountLabel,
                                     count = summary.missedCount,
+                                    totalCount = totalDoses,
                                     color = CoralAlert,
                                     language = language
                                 )
                                 StatLine(
                                     label = strings.pendingCountLabel,
                                     count = summary.pendingCount,
+                                    totalCount = totalDoses,
                                     color = AmberWarning,
                                     language = language
                                 )
@@ -190,6 +205,54 @@ fun HistoryReportsScreen(
                                 Icon(Icons.Rounded.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
                                 Text(strings.sharePdfReport)
+                            }
+                        }
+
+                        AnimatedVisibility(visible = uiState.lastSavedPdfReport != null) {
+                            uiState.lastSavedPdfReport?.let { savedPdf ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(EmeraldTaken.copy(alpha = 0.12f))
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.CheckCircle,
+                                        contentDescription = null,
+                                        tint = EmeraldTaken,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = strings.pdfSavedMsg,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = EmeraldTaken
+                                        )
+                                        Text(
+                                            text = savedPdf.displayPath,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    FilledTonalButton(
+                                        onClick = { onOpenSavedPdf(savedPdf) },
+                                        modifier = Modifier.testTag("open_saved_pdf_button")
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                                            contentDescription = strings.openPdfButton,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(strings.openPdfLabel)
+                                    }
+                                }
                             }
                         }
                     }
@@ -364,30 +427,60 @@ fun HistoryReportsScreen(
 private fun StatLine(
     label: String,
     count: Int,
+    totalCount: Int,
     color: Color,
     language: AppLanguage
 ) {
-    Row(
+    val targetFraction = if (totalCount > 0) (count.toFloat() / totalCount.toFloat()).coerceIn(0f, 1f) else 0f
+    val animatedFraction by animateFloatAsState(
+        targetValue = targetFraction,
+        animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing),
+        label = "stat_seekbar"
+    )
+
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(color)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(9.dp)
+                        .clip(CircleShape)
+                        .background(color)
+                )
+                Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+            }
+            StatusPill(
+                text = TimeFormatter.localizeDigits(count.toString(), language),
+                containerColor = color.copy(alpha = 0.16f),
+                contentColor = color
             )
-            Text(label, style = MaterialTheme.typography.bodyMedium)
         }
-        StatusPill(
-            text = TimeFormatter.localizeDigits(count.toString(), language),
-            containerColor = color.copy(alpha = 0.16f),
-            contentColor = color
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+        ) {
+            if (animatedFraction > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(animatedFraction)
+                        .fillMaxHeight()
+                        .clip(CircleShape)
+                        .background(color)
+                )
+            }
+        }
     }
 }

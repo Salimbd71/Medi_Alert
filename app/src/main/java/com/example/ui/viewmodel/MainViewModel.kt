@@ -30,6 +30,7 @@ import com.example.util.PdfReportGenerator
 import com.example.util.PermissionHealthState
 import com.example.util.PermissionHelper
 import com.example.util.PrescriptionFileHelper
+import com.example.util.SavedPdfReport
 import com.example.widget.MediAlertWidgetProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -56,7 +57,7 @@ data class MediAlertUiState(
     val todayDoses: List<ScheduledDoseItem> = emptyList(),
     val lowStockMedicines: List<MedicineWithSchedules> = emptyList(),
     val nextDoseInfo: NextDoseInfo? = null,
-    val todayAdherencePercent: Int = 100,
+    val todayAdherencePercent: Int = 0,
     val selectedDateEpochDay: Long = DoseSchedulerCalculator.epochDayFromMillis(System.currentTimeMillis()),
     val selectedDateDoses: List<ScheduledDoseItem> = emptyList(),
     val reportPeriod: ReportPeriod = ReportPeriod.WEEKLY,
@@ -65,6 +66,7 @@ data class MediAlertUiState(
     val searchQuery: String = "",
     val selectedMedicineTypeFilter: MedicineType? = null,
     val permissionHealth: PermissionHealthState = PermissionHealthState(true, true, true, true),
+    val lastSavedPdfReport: SavedPdfReport? = null,
     val currentTimeMillis: Long = System.currentTimeMillis()
 )
 
@@ -82,12 +84,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _searchQuery = MutableStateFlow("")
     private val _typeFilter = MutableStateFlow<MedicineType?>(null)
     private val _permissionHealth = MutableStateFlow(PermissionHelper.checkHealth(app))
+    private val _lastSavedPdfReport = MutableStateFlow<SavedPdfReport?>(null)
 
     private val _isUnlocked = MutableStateFlow(false)
     val isUnlocked: StateFlow<Boolean> = _isUnlocked.asStateFlow()
 
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val events: SharedFlow<String> = _events.asSharedFlow()
+
+    private val _pdfSavedEvents = MutableSharedFlow<SavedPdfReport>(extraBufferCapacity = 4)
+    val pdfSavedEvents: SharedFlow<SavedPdfReport> = _pdfSavedEvents.asSharedFlow()
 
     private var tts: TextToSpeech? = null
 
@@ -135,8 +141,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<MediAlertUiState> = combine(
         coreFlow,
         filtersFlow,
+        _lastSavedPdfReport,
         secondTickerFlow
-    ) { core, filters, nowMillis ->
+    ) { core, filters, lastSavedPdf, nowMillis ->
         val timeZone = TimeZone.getDefault()
         val todayEpochDay = DoseSchedulerCalculator.epochDayFromMillis(nowMillis, timeZone)
         val patientsById = core.patients.associateBy { it.id }
@@ -237,6 +244,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             searchQuery = filters.query,
             selectedMedicineTypeFilter = filters.typeFilter,
             permissionHealth = filters.permissionHealth,
+            lastSavedPdfReport = lastSavedPdf,
             currentTimeMillis = nowMillis
         )
     }.stateIn(
@@ -430,6 +438,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun enableBiometricOnlyLock() {
+        viewModelScope.launch {
+            prefsRepo.enableBiometricOnlyLock()
+            _isUnlocked.value = true
+        }
+    }
+
+    fun setPinLock(pin: String) {
+        viewModelScope.launch {
+            prefsRepo.setPinLock(pin)
+            _isUnlocked.value = true
+        }
+    }
+
+    fun clearPinLock() {
+        viewModelScope.launch {
+            prefsRepo.clearPinLock()
+        }
+    }
+
     fun disableAppLock() {
         viewModelScope.launch {
             prefsRepo.disableAppLock()
@@ -438,7 +466,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setBiometricEnabled(enabled: Boolean) {
-        viewModelScope.launch { prefsRepo.setBiometricEnabled(enabled) }
+        viewModelScope.launch {
+            prefsRepo.setBiometricEnabled(enabled)
+            if (enabled) {
+                _isUnlocked.value = true
+            }
+        }
     }
 
     fun verifyAndUnlock(pin: String): Boolean {
@@ -455,7 +488,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun lockIfEnabled() {
-        if (uiState.value.preferences.appLockEnabled) {
+        if (uiState.value.preferences.isLockActive) {
             _isUnlocked.value = false
         }
     }
@@ -516,6 +549,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 MediAlertWidgetProvider.requestWidgetUpdate(app)
             }.onSuccess {
                 _events.emit(successMessage)
+            }.onFailure {
+                _events.emit(errorMessage)
+            }
+        }
+    }
+
+    fun savePdfReportToDownloads(errorMessage: String) {
+        viewModelScope.launch {
+            val state = uiState.value
+            val summary = state.adherenceSummary ?: return@launch
+            val patientName = state.preferences.activePatientId?.let { pid ->
+                state.patients.find { it.id == pid }?.name
+            } ?: "All Patients"
+
+            val res = PdfReportGenerator.saveReportToDownloads(
+                context = app,
+                patientName = patientName,
+                summary = summary,
+                medicines = state.allMedicines,
+                dosesForSelectedDay = state.selectedDateDoses,
+                selectedEpochDay = state.selectedDateEpochDay,
+                language = state.preferences.language
+            )
+            res.onSuccess { saved ->
+                _lastSavedPdfReport.value = saved
+                _pdfSavedEvents.emit(saved)
             }.onFailure {
                 _events.emit(errorMessage)
             }

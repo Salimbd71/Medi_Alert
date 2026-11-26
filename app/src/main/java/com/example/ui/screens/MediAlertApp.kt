@@ -2,11 +2,13 @@ package com.example.ui.screens
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.ClipData
 import android.content.Intent
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,8 +49,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,6 +61,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,6 +69,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -83,6 +89,8 @@ import com.example.ui.strings.LocalAppStrings
 import com.example.ui.theme.GlassBackdrop
 import com.example.ui.theme.MediAlertTheme
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.SavedPdfReport
+import kotlinx.coroutines.launch
 
 enum class MainTab {
     TODAY,
@@ -99,9 +107,10 @@ fun MediAlertApp(viewModel: MainViewModel) {
     val isUnlocked by viewModel.isUnlocked.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val prefs = uiState.preferences
-    val locked = prefs.appLockEnabled && !isUnlocked
+    val locked = prefs.isLockActive && !isUnlocked
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { msg ->
@@ -164,21 +173,38 @@ fun MediAlertApp(viewModel: MainViewModel) {
             }
         }
 
-        val exportPdfLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.CreateDocument("application/pdf")
-        ) { uri ->
-            if (uri != null) {
-                viewModel.exportPdfReportToUri(
-                    uri = uri,
-                    successMessage = strings.pdfSavedMsg,
-                    errorMessage = strings.backupErrorMsg
+        fun openSavedPdf(report: SavedPdfReport) {
+            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(report.uri, "application/pdf")
+                clipData = ClipData.newUri(context.contentResolver, report.fileName, report.uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            runCatching {
+                context.startActivity(Intent.createChooser(viewIntent, strings.openPdfButton))
+            }.onFailure {
+                scope.launch {
+                    snackbarHostState.showSnackbar(strings.noPdfReaderMsg)
+                }
+            }
+        }
+
+        LaunchedEffect(strings) {
+            viewModel.pdfSavedEvents.collect { saved ->
+                val result = snackbarHostState.showSnackbar(
+                    message = "${strings.pdfSavedToPrefix}: ${saved.displayPath}",
+                    actionLabel = strings.openPdfLabel,
+                    duration = SnackbarDuration.Long
                 )
+                if (result == SnackbarResult.ActionPerformed) {
+                    openSavedPdf(saved)
+                }
             }
         }
 
         if (locked) {
             AppLockScreen(
                 language = prefs.language,
+                hasPinLock = prefs.hasPinLock,
                 biometricEnabled = prefs.biometricEnabled,
                 onVerifyPin = { pin -> viewModel.verifyAndUnlock(pin) },
                 onBiometricSuccess = { viewModel.unlockBiometric() }
@@ -198,7 +224,7 @@ fun MediAlertApp(viewModel: MainViewModel) {
                 Row(modifier = Modifier.fillMaxSize()) {
                     if (useNavRail) {
                         NavigationRail(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.78f),
                             contentColor = MaterialTheme.colorScheme.onSurface
                         ) {
                             Spacer(Modifier.size(16.dp))
@@ -266,8 +292,9 @@ fun MediAlertApp(viewModel: MainViewModel) {
                         bottomBar = {
                             if (!useNavRail) {
                                 NavigationBar(
-                                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.80f),
                                     contentColor = MaterialTheme.colorScheme.onSurface,
+                                    tonalElevation = 0.dp,
                                     modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
                                 ) {
                                     MainTab.entries.forEach { tab ->
@@ -333,8 +360,9 @@ fun MediAlertApp(viewModel: MainViewModel) {
                                     onSelectPeriod = viewModel::selectReportPeriod,
                                     onSelectDateEpochDay = viewModel::selectDateEpochDay,
                                     onSavePdfReport = {
-                                        exportPdfLauncher.launch("medi_alert_report_${System.currentTimeMillis()}.pdf")
+                                        viewModel.savePdfReportToDownloads(strings.backupErrorMsg)
                                     },
+                                    onOpenSavedPdf = ::openSavedPdf,
                                     onSharePdfReport = {
                                         viewModel.sharePdfReport(
                                             onUriReady = { uri ->
@@ -371,9 +399,12 @@ fun MediAlertApp(viewModel: MainViewModel) {
                                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                         }
                                     },
-                                    onEnableAppLock = viewModel::enableAppLock,
-                                    onDisableAppLock = viewModel::disableAppLock,
+                                    onSetPinLock = viewModel::setPinLock,
+                                    onClearPinLock = viewModel::clearPinLock,
                                     onBiometricToggle = viewModel::setBiometricEnabled,
+                                    onShowMessage = { msg ->
+                                        scope.launch { snackbarHostState.showSnackbar(msg) }
+                                    },
                                     onExportJsonBackup = {
                                         exportBackupLauncher.launch("medi_alert_backup_${System.currentTimeMillis()}.json")
                                     },
@@ -434,16 +465,42 @@ private fun MediAlertTopBar(
     language: AppLanguage,
     onToggleLanguage: () -> Unit
 ) {
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.3f
+    val barShape = RoundedCornerShape(22.dp)
+    val barBrush = if (isDark) {
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.56f)
+            )
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                Color(0xFFF6FCFD).copy(alpha = 0.68f),
+                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.54f)
+            )
+        )
+    }
+    val borderColor = if (isDark) {
+        Color.White.copy(alpha = 0.20f)
+    } else {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(barShape)
+            .background(brush = barBrush, shape = barShape),
+        shape = barShape,
+        color = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 2.dp,
-        shadowElevation = 4.dp
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Box(
             modifier = Modifier

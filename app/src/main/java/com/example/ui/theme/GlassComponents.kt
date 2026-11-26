@@ -1,6 +1,7 @@
 package com.example.ui.theme
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -32,7 +33,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,9 +73,9 @@ fun GlassBackdrop(
     )
 
     val bgBase = MaterialTheme.colorScheme.background
-    val orb1 = if (isDark) Color(0xFF0E4D57).copy(alpha = 0.55f) else Color(0xFF8BE2EA).copy(alpha = 0.42f)
-    val orb2 = if (isDark) Color(0xFF10594E).copy(alpha = 0.45f) else Color(0xFF9DF0DF).copy(alpha = 0.38f)
-    val orb3 = if (isDark) Color(0xFF3E1F2A).copy(alpha = 0.30f) else Color(0xFFFFD8CF).copy(alpha = 0.30f)
+    val orb1 = if (isDark) Color(0xFF0E4D57).copy(alpha = 0.55f) else Color(0xFF7ADBE5).copy(alpha = 0.48f)
+    val orb2 = if (isDark) Color(0xFF10594E).copy(alpha = 0.45f) else Color(0xFF8BEAD8).copy(alpha = 0.44f)
+    val orb3 = if (isDark) Color(0xFF3E1F2A).copy(alpha = 0.30f) else Color(0xFFFFCFC4).copy(alpha = 0.34f)
 
     Box(
         modifier = modifier
@@ -120,15 +123,26 @@ fun GlassCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.3f
-    val glassFill = if (isDark) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.68f)
+    val glassBrush = if (isDark) {
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.56f)
+            )
+        )
     } else {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.78f)
+        Brush.linearGradient(
+            colors = listOf(
+                Color(0xFFF6FCFD).copy(alpha = 0.62f),
+                MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.50f)
+            )
+        )
     }
     val borderBrush = Brush.linearGradient(
         colors = listOf(
-            (highlightColor ?: Color.White).copy(alpha = if (isDark) 0.24f else 0.75f),
-            MaterialTheme.colorScheme.outline.copy(alpha = if (isDark) 0.25f else 0.30f)
+            (highlightColor ?: if (isDark) Color.White else MaterialTheme.colorScheme.primary)
+                .copy(alpha = if (isDark) 0.24f else 0.28f),
+            MaterialTheme.colorScheme.outline.copy(alpha = if (isDark) 0.26f else 0.34f)
         )
     )
 
@@ -136,15 +150,16 @@ fun GlassCard(
     val baseModifier = modifier
         .animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))
         .clip(shape)
+        .background(brush = glassBrush, shape = shape)
         .let { if (onClick != null) it.clickable(onClick = onClick) else it }
 
     Surface(
         modifier = baseModifier,
         shape = shape,
-        color = glassFill,
+        color = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 2.dp,
-        shadowElevation = if (isDark) 0.dp else 4.dp,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
         border = BorderStroke(1.dp, borderBrush)
     ) {
         Column(
@@ -251,9 +266,21 @@ fun AdherenceBarChart(
     modifier: Modifier = Modifier
 ) {
     val displayPoints = if (points.size > 14) points.takeLast(14) else points
-    val barBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    val barBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f)
     val primaryBar = MaterialTheme.colorScheme.primary
     val secondaryBar = MintAccent
+
+    val revealProgress = remember { Animatable(0f) }
+    val animationKey = remember(displayPoints) {
+        displayPoints.map { "${it.epochDay}:${it.percentage}:${it.expectedCount}" }
+    }
+    LaunchedEffect(animationKey) {
+        revealProgress.snapTo(0f)
+        revealProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 750, easing = FastOutSlowInEasing)
+        )
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Canvas(
@@ -265,6 +292,7 @@ fun AdherenceBarChart(
             val count = displayPoints.size
             val slotWidth = size.width / count
             val barWidth = (slotWidth * 0.52f).coerceIn(8.dp.toPx(), 26.dp.toPx())
+            val globalProgress = revealProgress.value
 
             displayPoints.forEachIndexed { index, point ->
                 val x = index * slotWidth + (slotWidth - barWidth) / 2f
@@ -274,8 +302,11 @@ fun AdherenceBarChart(
                     size = Size(barWidth, size.height),
                     cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
                 )
-                val ratio = (point.percentage / 100f).coerceIn(0f, 1f)
-                val barHeight = (size.height * ratio).coerceAtLeast(if (point.expectedCount > 0) 6.dp.toPx() else 0f)
+                val staggerStart = (index.toFloat() / count.coerceAtLeast(1)) * 0.30f
+                val localProgress = ((globalProgress - staggerStart) / (1f - staggerStart)).coerceIn(0f, 1f)
+                val ratio = (point.percentage / 100f).coerceIn(0f, 1f) * localProgress
+                val baseMinHeight = if (point.expectedCount > 0 && point.percentage > 0) 6.dp.toPx() else 0f
+                val barHeight = (size.height * ratio).coerceAtLeast(if (localProgress > 0.05f) baseMinHeight else 0f)
                 if (barHeight > 0f) {
                     val color = when {
                         point.percentage >= 80 -> EmeraldTaken

@@ -1,23 +1,127 @@
 package com.example.util
 
+import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.core.content.FileProvider
+import com.example.R
 import com.example.data.model.AppLanguage
 import com.example.data.model.DoseStatus
 import com.example.data.model.MedicineWithSchedules
-import com.example.data.model.PatientEntity
 import com.example.data.model.ScheduledDoseItem
 import com.example.domain.AdherenceSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+data class SavedPdfReport(
+    val uri: Uri,
+    val fileName: String,
+    val displayPath: String
+)
 
 object PdfReportGenerator {
+
+    suspend fun saveReportToDownloads(
+        context: Context,
+        patientName: String,
+        summary: AdherenceSummary,
+        medicines: List<MedicineWithSchedules>,
+        dosesForSelectedDay: List<ScheduledDoseItem>,
+        selectedEpochDay: Long,
+        language: AppLanguage
+    ): Result<SavedPdfReport> = withContext(Dispatchers.IO) {
+        runCatching {
+            val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(Date())
+            val fileName = "Medi_Alert_Report_$stamp.pdf"
+            val doc = buildDocument(
+                context = context,
+                patientName = patientName,
+                summary = summary,
+                medicines = medicines,
+                dosesForSelectedDay = dosesForSelectedDay,
+                selectedEpochDay = selectedEpochDay,
+                language = language
+            )
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val resolver = context.contentResolver
+                    val values = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                        put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                        put(
+                            MediaStore.MediaColumns.RELATIVE_PATH,
+                            "${Environment.DIRECTORY_DOWNLOADS}/Medi_Alert"
+                        )
+                        put(MediaStore.MediaColumns.IS_PENDING, 1)
+                    }
+                    val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                        ?: error("Unable to create PDF in Download/Medi_Alert")
+                    runCatching {
+                        resolver.openOutputStream(uri)?.use { out ->
+                            doc.writeTo(out)
+                        } ?: error("Unable to write PDF output stream")
+                        values.clear()
+                        values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                        resolver.update(uri, values, null, null)
+                    }.onFailure { err ->
+                        runCatching { resolver.delete(uri, null, null) }
+                        throw err
+                    }
+                    SavedPdfReport(
+                        uri = uri,
+                        fileName = fileName,
+                        displayPath = "Download/Medi_Alert/$fileName"
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    val publicDir = File(
+                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                        "Medi_Alert"
+                    )
+                    val targetDir = runCatching {
+                        if (!publicDir.exists()) publicDir.mkdirs()
+                        if (publicDir.exists() && publicDir.canWrite()) publicDir else null
+                    }.getOrNull() ?: File(
+                        context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                        "Medi_Alert"
+                    ).apply { mkdirs() }
+
+                    val file = File(targetDir, fileName)
+                    FileOutputStream(file).use { out ->
+                        doc.writeTo(out)
+                    }
+                    val uri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                    SavedPdfReport(
+                        uri = uri,
+                        fileName = fileName,
+                        displayPath = "Download/Medi_Alert/$fileName"
+                    )
+                }
+            } finally {
+                doc.close()
+            }
+        }
+    }
 
     suspend fun generateReportToUri(
         context: Context,
@@ -31,6 +135,7 @@ object PdfReportGenerator {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val doc = buildDocument(
+                context = context,
                 patientName = patientName,
                 summary = summary,
                 medicines = medicines,
@@ -59,6 +164,7 @@ object PdfReportGenerator {
     ): Result<Uri> = withContext(Dispatchers.IO) {
         runCatching {
             val doc = buildDocument(
+                context = context,
                 patientName = patientName,
                 summary = summary,
                 medicines = medicines,
@@ -80,6 +186,7 @@ object PdfReportGenerator {
     }
 
     private fun buildDocument(
+        context: Context,
         patientName: String,
         summary: AdherenceSummary,
         medicines: List<MedicineWithSchedules>,
@@ -95,15 +202,36 @@ object PdfReportGenerator {
         var canvas = page.canvas
 
         val headerBgPaint = Paint().apply { color = Color.parseColor("#0A6C74") }
+        val headerDividerPaint = Paint().apply {
+            color = Color.parseColor("#4DD8F3F5")
+            strokeWidth = 1f
+        }
+        val logoBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#99D8F3F5")
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f
+        }
         val titlePaint = Paint().apply {
             color = Color.WHITE
-            textSize = 20f
+            textSize = 21f
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        val sloganPaint = Paint().apply {
+            color = Color.parseColor("#C8F6EE")
+            textSize = 11.5f
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
+            isAntiAlias = true
+        }
+        val reportHeadingPaint = Paint().apply {
+            color = Color.WHITE
+            textSize = 14f
             isFakeBoldText = true
             isAntiAlias = true
         }
         val subtitlePaint = Paint().apply {
             color = Color.parseColor("#D8F3F5")
-            textSize = 11f
+            textSize = 10.5f
             isAntiAlias = true
         }
         val sectionPaint = Paint().apply {
@@ -128,15 +256,39 @@ object PdfReportGenerator {
             strokeWidth = 1f
         }
 
-        // Top Banner
-        canvas.drawRect(0f, 0f, pageWidth.toFloat(), 96f, headerBgPaint)
-        canvas.drawText("Medi Alert — Medication & Adherence Report", 32f, 44f, titlePaint)
+        // Top Banner with App Logo, Medi Alert, Slogan, and Report Details
+        val headerHeight = 132f
+        canvas.drawRect(0f, 0f, pageWidth.toFloat(), headerHeight, headerBgPaint)
+
+        val logoSize = 50f
+        val logoLeft = 32f
+        val logoTop = 16f
+        val logoRect = RectF(logoLeft, logoTop, logoLeft + logoSize, logoTop + logoSize)
+        val logoBitmap = runCatching { loadRoundedLogoBitmap(context, 128) }.getOrNull()
+        if (logoBitmap != null) {
+            canvas.drawBitmap(
+                logoBitmap,
+                null,
+                logoRect,
+                Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+            )
+            logoBitmap.recycle()
+        }
+        canvas.drawRoundRect(logoRect, 11f, 11f, logoBorderPaint)
+
+        val brandTextX = logoLeft + logoSize + 14f
+        canvas.drawText("Medi Alert", brandTextX, 38f, titlePaint)
+        canvas.drawText("Never Miss a Dose, Never Miss Good Health.", brandTextX, 57f, sloganPaint)
+
+        canvas.drawLine(32f, 77f, pageWidth - 32f, 77f, headerDividerPaint)
+
+        canvas.drawText("Medication & Adherence Report", 32f, 97f, reportHeadingPaint)
         val rangeText = "${TimeFormatter.formatEpochDay(summary.startEpochDay, AppLanguage.ENGLISH)} - ${
             TimeFormatter.formatEpochDay(summary.endEpochDay, AppLanguage.ENGLISH)
         }"
-        canvas.drawText("Patient: $patientName   |   Period: ${summary.period.name} ($rangeText)", 32f, 70f, subtitlePaint)
+        canvas.drawText("Patient: $patientName   |   Period: ${summary.period.name} ($rangeText)", 32f, 117f, subtitlePaint)
 
-        var y = 128f
+        var y = 156f
 
         fun ensureSpace(neededHeight: Float) {
             if (y + neededHeight > pageHeight - 48f) {
@@ -227,5 +379,39 @@ object PdfReportGenerator {
 
         doc.finishPage(page)
         return doc
+    }
+
+    private fun loadRoundedLogoBitmap(context: Context, sizePx: Int): Bitmap? {
+        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeResource(context.resources, R.drawable.ic_medi_alert_fg, opts)
+        var sampleSize = 1
+        while (opts.outWidth / sampleSize > sizePx * 2 && opts.outHeight / sampleSize > sizePx * 2) {
+            sampleSize *= 2
+        }
+        val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+        val raw = BitmapFactory.decodeResource(context.resources, R.drawable.ic_medi_alert_fg, decodeOpts)
+            ?: return null
+        val scaled = if (raw.width != sizePx || raw.height != sizePx) {
+            Bitmap.createScaledBitmap(raw, sizePx, sizePx, true).also {
+                if (it !== raw) raw.recycle()
+            }
+        } else {
+            raw
+        }
+        val output = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(output)
+        val path = Path().apply {
+            val radius = sizePx * 0.22f
+            addRoundRect(RectF(0f, 0f, sizePx.toFloat(), sizePx.toFloat()), radius, radius, Path.Direction.CW)
+        }
+        canvas.clipPath(path)
+        canvas.drawBitmap(
+            scaled,
+            0f,
+            0f,
+            Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        )
+        scaled.recycle()
+        return output
     }
 }

@@ -123,7 +123,24 @@ data class AppStrings(
     val whatsappDeveloperDesc: String,
     val facebookDeveloperDesc: String,
     val shareAppDesc: String,
-    val shareAppMessage: String
+    val shareAppMessage: String,
+    val pinLockTitle: String,
+    val pinLockSetDesc: String,
+    val pinLockUnsetDesc: String,
+    val biometricLockDesc: String,
+    val biometricUnavailableMsg: String,
+    val changePinLabel: String,
+    val openPdfLabel: String,
+    val openPdfButton: String,
+    val pdfSavedToPrefix: String,
+    val noPdfReaderMsg: String,
+    val legalSectionTitle: String,
+    val privacyPolicyTitle: String,
+    val termsConditionsTitle: String,
+    val privacyPolicyBody: String,
+    val termsConditionsBody: String,
+    val mailMeLabel: String,
+    val closeLabel: String
 ) {
     fun medicineType(type: MedicineType): String = when (type) {
         MedicineType.TABLET -> if (isBangla) "ট্যাবলেট" else "Tablet"
@@ -279,7 +296,61 @@ val EnglishStrings = AppStrings(
     whatsappDeveloperDesc = "WhatsApp Developer",
     facebookDeveloperDesc = "Facebook Profile",
     shareAppDesc = "Share Medi Alert",
-    shareAppMessage = "Stay on top of your daily medicines with Medi Alert — smart offline pill reminders, multi-patient tracking, and stock alerts.\n\nDownload Latest APK:\nhttps://github.com/Salimbd71/Medi_Alert/releases/latest/download/medi-alert-release.apk"
+    shareAppMessage = "Stay on top of your daily medicines with Medi Alert — smart offline pill reminders, multi-patient tracking, and stock alerts.\n\nDownload Latest APK:\nhttps://github.com/Salimbd71/Medi_Alert/releases/latest/download/medi-alert-release.apk",
+    pinLockTitle = "4-Digit PIN Lock",
+    pinLockSetDesc = "PIN protection is active (tap Change to update)",
+    pinLockUnsetDesc = "Lock app using a 4-digit security PIN",
+    biometricLockDesc = "Unlock with fingerprint or face — works with or without PIN",
+    biometricUnavailableMsg = "Enable a fingerprint or biometric lock in your device Settings first",
+    changePinLabel = "Change",
+    openPdfLabel = "Open",
+    openPdfButton = "Open PDF",
+    pdfSavedToPrefix = "Saved to",
+    noPdfReaderMsg = "No PDF reader app installed to open this file",
+    legalSectionTitle = "Privacy, Terms & Support",
+    privacyPolicyTitle = "Privacy Policy",
+    termsConditionsTitle = "Terms & Conditions",
+    privacyPolicyBody = """
+Medi Alert (developed by SLM Technology) is a 100% offline medication management app. Your privacy and health records stay strictly on your device.
+
+1. Zero Data Collection & Offline Storage
+• Medi Alert does NOT collect, transmit, sell, or share any personal or medical data.
+• Patient profiles, medication schedules, dose history, PIN hashes, and prescriptions remain stored locally in your device's Room SQLite database and DataStore.
+
+2. Android Permissions & Why We Request Each One
+• Notifications (POST_NOTIFICATIONS): Used solely to show timely medication alerts, snooze alerts, and low-stock refill notifications.
+• Exact Alarms (SCHEDULE_EXACT_ALARM): Ensures medication reminders ring at the exact prescribed minute, even during idle periods.
+• Full-Screen Alarm Alert (USE_FULL_SCREEN_INTENT): Displays the full-screen dose reminder over the lock screen for time-critical medicines.
+• Boot & Time Sync (RECEIVE_BOOT_COMPLETED): Automatically restores your scheduled medication alarms after a phone restart, app update, or timezone change.
+• Alarm Audio & Voice (FOREGROUND_SERVICE, FOREGROUND_SERVICE_MEDIA_PLAYBACK, WAKE_LOCK, VIBRATE): Keeps alarm sound, vibration, and offline Text-to-Speech voice reminders running reliably until you respond.
+• Battery Optimization Exemption (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS): Optional user-approved setting so aggressive battery savers do not silence scheduled pill alarms.
+• Files, Prescriptions & PDF Exports: Prescription photos use the zero-permission Android Photo Picker, and PDF reports save directly into Download/Medi_Alert via Android's scoped MediaStore API without requesting broad storage access.
+• Biometric Authentication (USE_BIOMETRIC): Handled exclusively by Android's secure BiometricPrompt API; Medi Alert never reads or stores fingerprint data.
+
+3. Contact Developer
+If you have privacy questions, tap Mail Me to reach salimbd.ga@gmail.com.
+""".trimIndent(),
+    termsConditionsBody = """
+Welcome to Medi Alert by SLM Technology. By using this application, you agree to the following terms:
+
+1. Medical Disclaimer
+• Medi Alert is a personal medication reminder and tracking tool only. It does NOT provide medical advice, diagnosis, or treatment recommendations.
+• Always follow instructions from your licensed physician or pharmacist regarding dosages, timing, and refills.
+
+2. Reminder Reliability & User Responsibility
+• Alarm delivery depends on device hardware, system power settings, volume levels, and OS permissions (Notifications, Exact Alarms, and Unrestricted Battery).
+• Please verify dose schedules and maintain backups via Settings > Offline Backup & Restore before changing or resetting your device.
+
+3. Offline Ownership & Backups
+• You retain full control over your exported JSON backups, prescriptions, and PDF reports saved in Download/Medi_Alert.
+• Because Medi Alert has no cloud server, SLM Technology cannot recover deleted data if the app is uninstalled without an exported backup.
+
+4. Intellectual Property & Support
+• Medi Alert is provided "as is" without warranty of any kind.
+• For bug reports, feedback, or support, please contact salimbd.ga@gmail.com.
+""".trimIndent(),
+    mailMeLabel = "Mail Me",
+    closeLabel = "Close"
 )
 
 val BanglaStrings = AppStrings(
@@ -397,7 +468,57 @@ val BanglaStrings = AppStrings(
     whatsappDeveloperDesc = "হোয়াটসঅ্যাপে যোগাযোগ",
     facebookDeveloperDesc = "ফেসবুক প্রোফাইল",
     shareAppDesc = "অ্যাপ শেয়ার করুন",
-    shareAppMessage = "সঠিক সময়ে ওষুধ খেতে ব্যবহার করুন Medi Alert — স্মার্ট অফলাইন পিল রিমাইন্ডার, একাধিক রোগীর প্রোফাইল ও স্টক অ্যালার্ট।\n\nসর্বশেষ ভার্সন ডাউনলোড লিংক:\nhttps://github.com/Salimbd71/Medi_Alert/releases/latest/download/medi-alert-release.apk"
+    shareAppMessage = "সঠিক সময়ে ওষুধ খেতে ব্যবহার করুন Medi Alert — স্মার্ট অফলাইন পিল রিমাইন্ডার, একাধিক রোগীর প্রোফাইল ও স্টক অ্যালার্ট।\n\nসর্বশেষ ভার্সন ডাউনলোড লিংক:\nhttps://github.com/Salimbd71/Medi_Alert/releases/latest/download/medi-alert-release.apk",
+    pinLockTitle = "৪-সংখ্যার পিন লক",
+    pinLockSetDesc = "পিন লক চালু আছে (পরিবর্তন করতে ট্যাপ করুন)",
+    pinLockUnsetDesc = "৪-সংখ্যার পিন কোড দিয়ে অ্যাপ সুরক্ষিত রাখুন",
+    biometricLockDesc = "পিন ছাড়াই শুধু ফিঙ্গারপ্রিন্ট বা ফেস দিয়ে আনলক করুন",
+    biometricUnavailableMsg = "প্রথমে ফোনের সেটিংসে ফিঙ্গারপ্রিন্ট বা বায়োমেট্রিক লক সেট করুন",
+    changePinLabel = "পরিবর্তন",
+    openPdfLabel = "খুলুন",
+    openPdfButton = "PDF খুলুন",
+    pdfSavedToPrefix = "সেভ হয়েছে",
+    noPdfReaderMsg = "ফাইলে খোলার জন্য ফোনে কোনো PDF রিডার অ্যাপ পাওয়া যায়নি",
+    legalSectionTitle = "প্রাইভেসি পলিসি, শর্তাবলি ও সাপোর্ট",
+    privacyPolicyTitle = "প্রাইভেসি পলিসি (Privacy Policy)",
+    termsConditionsTitle = "শর্তাবলি (Terms & Conditions)",
+    privacyPolicyBody = """
+Medi Alert (ডেভেলপার: SLM Technology) একটি ১০০% অফলাইন ওষুধ ব্যবস্থাপনা অ্যাপ। আপনার সকল স্বাস্থ্য তথ্য শুধুমাত্র আপনার ফোনেই সংরক্ষিত থাকে।
+
+১. কোনো তথ্য সংগ্রহ করা হয় না (Zero Data Collection)
+• Medi Alert আপনার কোনো ব্যক্তিগত বা চিকিৎসা তথ্য সংগ্রহ, বিক্রি বা কোনো সার্ভারে পাঠায় না।
+• রোগীর প্রোফাইল, ওষুধের রুটিন, পিন হ্যাশ এবং প্রেসক্রিপশন সম্পূর্ণ অফলাইনে আপনার ফোনের লোকাল ডাটাবেজে থাকে।
+
+২. ব্যবহৃত অ্যান্ড্রয়েড পারমিশনগুলোর ব্যাখ্যা
+• নোটিফিকেশন (POST_NOTIFICATIONS): শুধুমাত্র নির্ধারিত সময়ে ওষুধের অ্যালার্ম, স্নুজ ও কম স্টক সতর্কতা দেখানোর জন্য।
+• একজ্যাক্ট অ্যালার্ম (SCHEDULE_EXACT_ALARM): ফোন আইডল অবস্থায় থাকলেও ঠিক নির্ধারিত মিনিটে ওষুধের রিমাইন্ডার বাজানোর জন্য।
+• ফুল-স্ক্রিন অ্যালার্ম (USE_FULL_SCREEN_INTENT): জরুরি ওষুধের সময় লক স্ক্রিনের উপরে পূর্ণ পর্দার অ্যালার্ম স্ক্রিন দেখানোর জন্য।
+• বুট ও সময় সিঙ্ক (RECEIVE_BOOT_COMPLETED): ফোন রিস্টার্ট, অ্যাপ আপডেট বা টাইমজোন পরিবর্তনের পর সব অ্যালার্ম স্বয়ংক্রিয়ভাবে পুনরায় চালু রাখার জন্য।
+• অ্যালার্ম সাউন্ড ও ভয়েস (FOREGROUND_SERVICE, FOREGROUND_SERVICE_MEDIA_PLAYBACK, WAKE_LOCK, VIBRATE): অ্যালার্মের শব্দ, ভাইব্রেশন ও অফলাইন ভয়েস রিমাইন্ডার নিরবচ্ছিন্নভাবে চালানোর জন্য।
+• ব্যাটারি অপটিমাইজেশন (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS): ঐচ্ছিক সেটিংস—যাতে ফোনের ব্যাটারি সেভার ওষুধের অ্যালার্ম বন্ধ না করে দেয়।
+• ফাইল, প্রেসক্রিপশন ও PDF সেভ: প্রেসক্রিপশনের ছবির জন্য পারমিশন-মুক্ত Android Photo Picker এবং PDF সেভ করার জন্য ফোনের সুরক্ষিত Download/Medi_Alert (MediaStore) ফোল্ডার ব্যবহার করা হয়।
+• বায়োমেট্রিক লক (USE_BIOMETRIC): অ্যান্ড্রয়েডের নিজস্ব সুরক্ষিত BiometricPrompt সিস্টেম ব্যবহার করে; অ্যাপ আপনার ফিঙ্গারপ্রিন্টের কোনো তথ্য সংরক্ষণ করে না।
+
+৩. যোগাযোগ
+প্রাইভেসি সংক্রান্ত যেকোনো প্রশ্নে Mail Me বাটনে ট্যাপ করে salimbd.ga@gmail.com-এ মেইল করুন।
+""".trimIndent(),
+    termsConditionsBody = """
+SLM Technology-র তৈরি Medi Alert ব্যবহার করার মাধ্যমে আপনি নিচের শর্তাবলিতে সম্মত হচ্ছেন:
+
+১. চিকিৎসা সংক্রান্ত সতর্কীকরণ (Medical Disclaimer)
+• Medi Alert শুধুমাত্র সময়মতো ওষুধ মনে করিয়ে দেওয়ার একটি সহায়ক টুল। এটি কোনো ডাক্তারি পরামর্শ বা চিকিৎসা সেবা প্রদান করে না।
+• ওষুধের মাত্রা ও সময়সূচির জন্য সর্বদা নিবন্ধিত চিকিৎসক বা ফার্মাসিস্টের পরামর্শ অনুসরণ করুন।
+
+২. অ্যালার্ম ও ব্যবহারকারীর দায়িত্ব
+• অ্যালার্ম সঠিক সময়ে বাজার জন্য ফোনের নোটিফিকেশন, একজ্যাক্ট অ্যালার্ম, ব্যাটারি ও সাউন্ড সেটিংস ঠিক রাখা প্রয়োজন।
+• ফোন পরিবর্তন বা অ্যাপ আনইনস্টল করার আগে Settings > Offline Backup & Restore থেকে ব্যাকআপ নিয়ে রাখুন।
+
+৩. অফলাইন মালিকানা ও সাপোর্ট
+• Download/Medi_Alert ফোল্ডারে সংরক্ষিত PDF এবং JSON ব্যাকআপের সম্পূর্ণ নিয়ন্ত্রণ আপনার কাছেই থাকে।
+• যেকোনো মতামত বা সহায়তার জন্য ইমেইল করুন: salimbd.ga@gmail.com।
+""".trimIndent(),
+    mailMeLabel = "Mail Me",
+    closeLabel = "বন্ধ করুন"
 )
 
 fun stringsFor(language: AppLanguage): AppStrings =

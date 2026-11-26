@@ -28,7 +28,13 @@ data class UserPreferences(
     val pinHash: String? = null,
     val biometricEnabled: Boolean = false,
     val autoMissedWindowMinutes: Int = 30
-)
+) {
+    val hasPinLock: Boolean
+        get() = !pinHash.isNullOrBlank()
+
+    val isLockActive: Boolean
+        get() = appLockEnabled && (hasPinLock || biometricEnabled)
+}
 
 class UserPreferencesRepository(private val context: Context) {
     private object Keys {
@@ -104,6 +110,30 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
+    suspend fun enableBiometricOnlyLock() {
+        context.dataStore.edit {
+            it.remove(Keys.PIN_HASH)
+            it[Keys.BIOMETRIC_ENABLED] = true
+            it[Keys.APP_LOCK_ENABLED] = true
+        }
+    }
+
+    suspend fun setPinLock(pin: String) {
+        val hash = PinHasher.hashPin(pin)
+        context.dataStore.edit {
+            it[Keys.PIN_HASH] = hash
+            it[Keys.APP_LOCK_ENABLED] = true
+        }
+    }
+
+    suspend fun clearPinLock() {
+        context.dataStore.edit {
+            it.remove(Keys.PIN_HASH)
+            val bioActive = it[Keys.BIOMETRIC_ENABLED] ?: false
+            it[Keys.APP_LOCK_ENABLED] = bioActive
+        }
+    }
+
     suspend fun disableAppLock() {
         context.dataStore.edit {
             it[Keys.APP_LOCK_ENABLED] = false
@@ -113,7 +143,11 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     suspend fun setBiometricEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[Keys.BIOMETRIC_ENABLED] = enabled }
+        context.dataStore.edit {
+            it[Keys.BIOMETRIC_ENABLED] = enabled
+            val hasPin = !it[Keys.PIN_HASH].isNullOrBlank()
+            it[Keys.APP_LOCK_ENABLED] = enabled || hasPin
+        }
     }
 
     suspend fun setAutoMissedWindowMinutes(minutes: Int) {
