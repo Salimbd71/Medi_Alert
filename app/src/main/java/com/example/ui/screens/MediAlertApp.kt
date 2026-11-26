@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.Intent
 import android.os.Build
+import android.speech.tts.TextToSpeech
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -227,6 +228,21 @@ fun MediAlertApp(viewModel: MainViewModel) {
             }
         }
 
+        LaunchedEffect(strings) {
+            viewModel.missingBanglaTtsEvents.collect {
+                val result = snackbarHostState.showSnackbar(
+                    message = strings.banglaTtsMissingMsg,
+                    actionLabel = strings.installVoiceLabel,
+                    duration = SnackbarDuration.Long
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    runCatching {
+                        context.startActivity(Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA))
+                    }
+                }
+            }
+        }
+
         if (showSplash) {
             AnimatedSplashScreen()
             return@MediAlertTheme
@@ -423,7 +439,7 @@ fun MediAlertApp(viewModel: MainViewModel) {
                                     onLanguageChange = viewModel::setLanguage,
                                     onCustomSoundSelected = viewModel::setCustomAlarmSoundUri,
                                     onVoiceReminderChange = viewModel::setVoiceReminderEnabled,
-                                    onTestVoiceClick = { viewModel.testVoiceReminder(prefs.language) },
+                                    onTestVoiceClick = { viewModel.testVoiceReminder() },
                                     onMissedWindowChange = viewModel::setAutoMissedWindowMinutes,
                                     onRequestNotificationPermission = {
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

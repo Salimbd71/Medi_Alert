@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.MediAlertApplication
@@ -96,7 +97,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _pdfSavedEvents = MutableSharedFlow<SavedPdfReport>(extraBufferCapacity = 4)
     val pdfSavedEvents: SharedFlow<SavedPdfReport> = _pdfSavedEvents.asSharedFlow()
 
+    private val _missingBanglaTtsEvents = MutableSharedFlow<Unit>(extraBufferCapacity = 2)
+    val missingBanglaTtsEvents: SharedFlow<Unit> = _missingBanglaTtsEvents.asSharedFlow()
+
     private var tts: TextToSpeech? = null
+    private var ttsReady = false
+    private var pendingTestEnglishFollowUp: String? = null
 
     private val secondTickerFlow = flow {
         while (true) {
@@ -501,30 +507,98 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun testVoiceReminder(language: AppLanguage) {
-        val sampleText = if (language == AppLanguage.BANGLA) {
-            "মেডি অ্যালার্ট ভয়েস রিমাইন্ডার সক্রিয় রয়েছে।"
-        } else {
-            "Medi Alert voice reminder is active and ready."
-        }
-        if (tts == null) {
+    fun testVoiceReminder() {
+        val banglaIntro = "স্বাগতম মেডি অ্যালার্টে। এটি একটি স্মার্ট অফলাইন ওষুধ রিমাইন্ডার অ্যাপ, যা আপনাকে প্রতিদিন সঠিক সময়ে ওষুধ খেতে সাহায্য করে।"
+        val englishIntro = "Welcome to Medi Alert. Never miss a dose, never miss good health. This smart offline app helps you take your medicines on time every day."
+
+        val existing = tts
+        if (existing == null) {
             tts = TextToSpeech(app) { status ->
                 if (status == TextToSpeech.SUCCESS) {
-                    val locale = if (language == AppLanguage.BANGLA) Locale("bn", "BD") else Locale.ENGLISH
-                    val res = tts?.setLanguage(locale)
-                    if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        tts?.setLanguage(Locale.ENGLISH)
-                    }
-                    tts?.speak(sampleText, TextToSpeech.QUEUE_FLUSH, null, "test_tts")
+                    ttsReady = true
+                    val engine = tts ?: return@TextToSpeech
+                    engine.setSpeechRate(0.88f)
+                    engine.setPitch(1.0f)
+                    engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onStart(utteranceId: String?) {}
+
+                        override fun onDone(utteranceId: String?) {
+                            if (utteranceId == "test_tts_bn") {
+                                viewModelScope.launch(Dispatchers.Main) {
+                                    val followUp = pendingTestEnglishFollowUp
+                                    pendingTestEnglishFollowUp = null
+                                    if (!followUp.isNullOrBlank()) {
+                                        speakTestUtterance(engine, followUp, isBangla = false, utteranceId = "test_tts_en")
+                                    }
+                                }
+                            }
+                        }
+
+                        @Deprecated("Deprecated in Java")
+                        override fun onError(utteranceId: String?) {
+                            if (utteranceId == "test_tts_bn") {
+                                viewModelScope.launch(Dispatchers.Main) {
+                                    val followUp = pendingTestEnglishFollowUp
+                                    pendingTestEnglishFollowUp = null
+                                    if (!followUp.isNullOrBlank()) {
+                                        speakTestUtterance(engine, followUp, isBangla = false, utteranceId = "test_tts_en")
+                                    }
+                                }
+                            }
+                        }
+
+                        override fun onError(utteranceId: String?, errorCode: Int) {
+                            onError(utteranceId)
+                        }
+                    })
+                    startBilingualTest(engine, banglaIntro, englishIntro)
                 }
             }
+        } else if (ttsReady) {
+            existing.stop()
+            startBilingualTest(existing, banglaIntro, englishIntro)
+        }
+    }
+
+    private fun startBilingualTest(
+        engine: TextToSpeech,
+        banglaIntro: String,
+        englishIntro: String
+    ) {
+        if (selectTtsLanguage(engine, isBangla = true)) {
+            pendingTestEnglishFollowUp = englishIntro
+            speakTestUtterance(engine, banglaIntro, isBangla = true, utteranceId = "test_tts_bn")
         } else {
-            val locale = if (language == AppLanguage.BANGLA) Locale("bn", "BD") else Locale.ENGLISH
-            val res = tts?.setLanguage(locale)
-            if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
-                tts?.setLanguage(Locale.ENGLISH)
+            pendingTestEnglishFollowUp = null
+            speakTestUtterance(engine, englishIntro, isBangla = false, utteranceId = "test_tts_en")
+            _missingBanglaTtsEvents.tryEmit(Unit)
+        }
+    }
+
+    private fun speakTestUtterance(
+        engine: TextToSpeech,
+        text: String,
+        isBangla: Boolean,
+        utteranceId: String
+    ) {
+        selectTtsLanguage(engine, isBangla = isBangla)
+        engine.setSpeechRate(0.88f)
+        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+    }
+
+    private fun selectTtsLanguage(engine: TextToSpeech, isBangla: Boolean): Boolean {
+        return if (isBangla) {
+            val candidates = listOf(Locale("bn", "BD"), Locale("bn", "IN"), Locale("bn"))
+            candidates.any { loc ->
+                val res = engine.setLanguage(loc)
+                res != TextToSpeech.LANG_MISSING_DATA && res != TextToSpeech.LANG_NOT_SUPPORTED
             }
-            tts?.speak(sampleText, TextToSpeech.QUEUE_FLUSH, null, "test_tts")
+        } else {
+            val res = engine.setLanguage(Locale.US)
+            if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
+                engine.setLanguage(Locale.ENGLISH)
+            }
+            true
         }
     }
 

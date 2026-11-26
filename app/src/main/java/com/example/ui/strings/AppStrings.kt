@@ -156,7 +156,9 @@ data class AppStrings(
     val skipForNowLabel: String,
     val allowExactAlarmLabel: String,
     val openAppSettingsLabel: String,
-    val continueToDashboardLabel: String
+    val continueToDashboardLabel: String,
+    val banglaTtsMissingMsg: String,
+    val installVoiceLabel: String
 ) {
     fun medicineType(type: MedicineType): String = when (type) {
         MedicineType.TABLET -> if (isBangla) "ট্যাবলেট" else "Tablet"
@@ -382,7 +384,9 @@ Welcome to Medi Alert by SLM Technology. By using this application, you agree to
     skipForNowLabel = "Not Now",
     allowExactAlarmLabel = "Allow Exact Alarms",
     openAppSettingsLabel = "Open Settings",
-    continueToDashboardLabel = "Continue to Dashboard"
+    continueToDashboardLabel = "Continue to Dashboard",
+    banglaTtsMissingMsg = "Bangla voice pack not found on device TTS. Install Bangla voice for dual-language reminders.",
+    installVoiceLabel = "Install"
 )
 
 val BanglaStrings = AppStrings(
@@ -566,7 +570,9 @@ SLM Technology-র তৈরি Medi Alert ব্যবহার করার �
     skipForNowLabel = "এখন নয়",
     allowExactAlarmLabel = "একজ্যাক্ট অ্যালার্ম চালু করুন",
     openAppSettingsLabel = "সেটিংস খুলুন",
-    continueToDashboardLabel = "ড্যাশবোর্ডে যান"
+    continueToDashboardLabel = "ড্যাশবোর্ডে যান",
+    banglaTtsMissingMsg = "ফোনের TTS-এ বাংলা ভয়েস ডেটা নেই। বাংলা ভয়েস পেতে ডাউনলোড করুন।",
+    installVoiceLabel = "ডাউনলোড"
 )
 
 fun stringsFor(language: AppLanguage): AppStrings =

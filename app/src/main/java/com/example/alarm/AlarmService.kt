@@ -4,10 +4,12 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -35,11 +37,17 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
     private var vibrator: Vibrator? = null
     private var tts: TextToSpeech? = null
     private var ttsReady = false
-    private var pendingVoicePrompt: String? = null
-    private var voiceLanguage: AppLanguage = AppLanguage.ENGLISH
+    private var pendingBanglaPrompt: String? = null
+    private var pendingEnglishPrompt: String? = null
+    private var activeEnglishFollowUp: String? = null
     private var autoSilenceJob: Job? = null
     private var voiceRepeatJob: Job? = null
     private var volumeRestoreFallbackJob: Job? = null
+
+    companion object {
+        private const val UTTERANCE_BANGLA = "medi_alert_voice_bn"
+        private const val UTTERANCE_ENGLISH = "medi_alert_voice_en"
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -96,18 +104,19 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
                 startSoundAndVibration(medicine.customSoundUri ?: prefs.customAlarmSoundUri)
 
                 if (prefs.voiceReminderEnabled && medicine.voiceReminderEnabled) {
-                    voiceLanguage = prefs.language
-                    val prompt = buildVoicePrompt(medicine, patient, prefs.language)
-                    pendingVoicePrompt = prompt
+                    val bnPrompt = buildBanglaVoicePrompt(medicine)
+                    val enPrompt = buildEnglishVoicePrompt(medicine, patient)
+                    pendingBanglaPrompt = bnPrompt
+                    pendingEnglishPrompt = enPrompt
                     if (ttsReady) {
-                        speakPrompt(prompt, prefs.language)
+                        speakBilingualReminder(bnPrompt, enPrompt)
                     }
                     voiceRepeatJob?.cancel()
                     voiceRepeatJob = serviceScope.launch {
-                        repeat(4) {
-                            delay(14_000L)
+                        repeat(3) {
+                            delay(24_000L)
                             if (ttsReady && mediaPlayer != null) {
-                                speakPrompt(prompt, prefs.language)
+                                speakBilingualReminder(bnPrompt, enPrompt)
                             }
                         }
                     }
@@ -134,6 +143,8 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
                     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                     .build()
             )
+            tts?.setSpeechRate(0.88f)
+            tts?.setPitch(1.0f)
             tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                 override fun onStart(utteranceId: String?) {
                     serviceScope.launch(Dispatchers.Main) {
@@ -143,51 +154,104 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
 
                 override fun onDone(utteranceId: String?) {
                     serviceScope.launch(Dispatchers.Main) {
-                        volumeRestoreFallbackJob?.cancel()
-                        setAlarmVolume(1.0f)
+                        handleUtteranceComplete(utteranceId)
                     }
                 }
 
                 @Deprecated("Deprecated in Java")
                 override fun onError(utteranceId: String?) {
                     serviceScope.launch(Dispatchers.Main) {
-                        volumeRestoreFallbackJob?.cancel()
-                        setAlarmVolume(1.0f)
+                        handleUtteranceComplete(utteranceId)
                     }
                 }
 
                 override fun onError(utteranceId: String?, errorCode: Int) {
                     serviceScope.launch(Dispatchers.Main) {
-                        volumeRestoreFallbackJob?.cancel()
-                        setAlarmVolume(1.0f)
+                        handleUtteranceComplete(utteranceId)
                     }
                 }
             })
-            pendingVoicePrompt?.let { prompt ->
-                speakPrompt(prompt, voiceLanguage)
+            val bn = pendingBanglaPrompt
+            val en = pendingEnglishPrompt
+            if (bn != null && en != null) {
+                speakBilingualReminder(bn, en)
             }
         }
     }
 
-    private fun speakPrompt(text: String, language: AppLanguage) {
+    private fun handleUtteranceComplete(utteranceId: String?) {
+        if (utteranceId == UTTERANCE_BANGLA) {
+            val followUp = activeEnglishFollowUp
+            activeEnglishFollowUp = null
+            if (!followUp.isNullOrBlank()) {
+                speakSingleUtterance(
+                    text = followUp,
+                    isBangla = false,
+                    utteranceId = UTTERANCE_ENGLISH
+                )
+                return
+            }
+        }
+        volumeRestoreFallbackJob?.cancel()
+        setAlarmVolume(1.0f)
+    }
+
+    private fun speakBilingualReminder(bnText: String, enText: String) {
         val engine = tts ?: return
-        val targetLocale = if (language == AppLanguage.BANGLA) Locale("bn", "BD") else Locale.ENGLISH
-        var result = engine.setLanguage(targetLocale)
-        if (language == AppLanguage.BANGLA &&
-            (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED)
-        ) {
-            result = engine.setLanguage(Locale("bn", "IN"))
-        }
-        if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-            engine.setLanguage(Locale.ENGLISH)
-        }
         setAlarmVolume(0.15f)
         volumeRestoreFallbackJob?.cancel()
         volumeRestoreFallbackJob = serviceScope.launch {
-            delay(8_000L)
+            delay(18_000L)
             setAlarmVolume(1.0f)
         }
-        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "medi_alert_voice")
+
+        if (selectLanguage(engine, isBangla = true)) {
+            activeEnglishFollowUp = enText
+            speakSingleUtterance(
+                text = bnText,
+                isBangla = true,
+                utteranceId = UTTERANCE_BANGLA
+            )
+        } else {
+            // Bangla TTS voice data missing on device: skip untranslatable script and speak English clearly
+            activeEnglishFollowUp = null
+            speakSingleUtterance(
+                text = enText,
+                isBangla = false,
+                utteranceId = UTTERANCE_ENGLISH
+            )
+        }
+    }
+
+    private fun speakSingleUtterance(
+        text: String,
+        isBangla: Boolean,
+        utteranceId: String
+    ) {
+        val engine = tts ?: return
+        selectLanguage(engine, isBangla = isBangla)
+        engine.setSpeechRate(0.88f)
+        val params = Bundle().apply {
+            putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM)
+            putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
+        }
+        engine.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+    }
+
+    private fun selectLanguage(engine: TextToSpeech, isBangla: Boolean): Boolean {
+        return if (isBangla) {
+            val candidates = listOf(Locale("bn", "BD"), Locale("bn", "IN"), Locale("bn"))
+            candidates.any { loc ->
+                val res = engine.setLanguage(loc)
+                res != TextToSpeech.LANG_MISSING_DATA && res != TextToSpeech.LANG_NOT_SUPPORTED
+            }
+        } else {
+            val res = engine.setLanguage(Locale.US)
+            if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
+                engine.setLanguage(Locale.ENGLISH)
+            }
+            true
+        }
     }
 
     private fun setAlarmVolume(volume: Float) {
@@ -196,17 +260,17 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun buildVoicePrompt(
+    private fun buildBanglaVoicePrompt(medicine: MedicineEntity): String {
+        val meal = NotificationHelper.formatMealTiming(medicine.mealTiming, AppLanguage.BANGLA)
+        return "আপনার ঔষধ খাওয়ার সময় হয়েছে। ${medicine.name}, ${medicine.dosageAmount} ${medicine.dosageUnit}, $meal।"
+    }
+
+    private fun buildEnglishVoicePrompt(
         medicine: MedicineEntity,
-        patient: PatientEntity,
-        language: AppLanguage
+        patient: PatientEntity
     ): String {
-        val meal = NotificationHelper.formatMealTiming(medicine.mealTiming, language)
-        return if (language == AppLanguage.BANGLA) {
-            "আপনার ঔষধ খাওয়ার সময় হয়েছে। ${medicine.name}, ${medicine.dosageAmount} ${medicine.dosageUnit}, $meal।"
-        } else {
-            "Reminder for ${patient.name}. Time to take ${medicine.name}, ${medicine.dosageAmount} ${medicine.dosageUnit}, $meal."
-        }
+        val meal = NotificationHelper.formatMealTiming(medicine.mealTiming, AppLanguage.ENGLISH)
+        return "It is time to take your medicine. Reminder for ${patient.name}: ${medicine.name}, ${medicine.dosageAmount} ${medicine.dosageUnit}, $meal."
     }
 
     private fun startSoundAndVibration(customSoundUri: String?) {
