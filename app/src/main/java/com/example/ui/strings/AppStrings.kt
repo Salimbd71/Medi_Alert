@@ -140,7 +140,23 @@ data class AppStrings(
     val privacyPolicyBody: String,
     val termsConditionsBody: String,
     val mailMeLabel: String,
-    val closeLabel: String
+    val closeLabel: String,
+    val appSlogan: String,
+    val welcomeOnboardingTitle: String,
+    val welcomeOnboardingSubtitle: String,
+    val onboardingNotifTitle: String,
+    val onboardingNotifDesc: String,
+    val onboardingExactAlarmTitle: String,
+    val onboardingExactAlarmDesc: String,
+    val onboardingLimitedTitle: String,
+    val onboardingLimitedDesc: String,
+    val onboardingDeniedTitle: String,
+    val onboardingDeniedDesc: String,
+    val continueButtonLabel: String,
+    val skipForNowLabel: String,
+    val allowExactAlarmLabel: String,
+    val openAppSettingsLabel: String,
+    val continueToDashboardLabel: String
 ) {
     fun medicineType(type: MedicineType): String = when (type) {
         MedicineType.TABLET -> if (isBangla) "ট্যাবলেট" else "Tablet"
@@ -350,7 +366,23 @@ Welcome to Medi Alert by SLM Technology. By using this application, you agree to
 • For bug reports, feedback, or support, please contact salimbd.ga@gmail.com.
 """.trimIndent(),
     mailMeLabel = "Mail Me",
-    closeLabel = "Close"
+    closeLabel = "Close",
+    appSlogan = "Never Miss a Dose, Never Miss Good Health.",
+    welcomeOnboardingTitle = "Welcome to Medi Alert",
+    welcomeOnboardingSubtitle = "Set up quick permissions so your medicine alarms ring on time, even offline.",
+    onboardingNotifTitle = "Notifications",
+    onboardingNotifDesc = "Shows dose alerts, snooze buttons, and low-stock refill warnings.",
+    onboardingExactAlarmTitle = "Exact Alarms",
+    onboardingExactAlarmDesc = "Triggers reminders at the exact prescribed minute, even in idle mode.",
+    onboardingLimitedTitle = "What happens if skipped?",
+    onboardingLimitedDesc = "Without Notification or Exact Alarm permission, pop-up dose alerts, alarm sound notifications, and exact-minute ringtimes may be delayed or missed by Android.",
+    onboardingDeniedTitle = "Some Permissions Not Granted",
+    onboardingDeniedDesc = "You can still add medicines, view schedules, and export PDFs, but timely pop-up reminders and exact alarms will stay limited until allowed in Settings.",
+    continueButtonLabel = "Continue",
+    skipForNowLabel = "Not Now",
+    allowExactAlarmLabel = "Allow Exact Alarms",
+    openAppSettingsLabel = "Open Settings",
+    continueToDashboardLabel = "Continue to Dashboard"
 )
 
 val BanglaStrings = AppStrings(
@@ -518,7 +550,23 @@ SLM Technology-র তৈরি Medi Alert ব্যবহার করার �
 • যেকোনো মতামত বা সহায়তার জন্য ইমেইল করুন: salimbd.ga@gmail.com।
 """.trimIndent(),
     mailMeLabel = "Mail Me",
-    closeLabel = "বন্ধ করুন"
+    closeLabel = "বন্ধ করুন",
+    appSlogan = "Never Miss a Dose, Never Miss Good Health.",
+    welcomeOnboardingTitle = "মেডি অ্যালার্টে স্বাগতম",
+    welcomeOnboardingSubtitle = "সঠিক সময়ে ওষুধের অ্যালার্ম পেতে নিচের প্রয়োজনীয় পারমিশনগুলো চালু করুন।",
+    onboardingNotifTitle = "নোটিফিকেশন (Notification)",
+    onboardingNotifDesc = "সময়মতো ওষুধের অ্যালার্ট, স্নুজ বাটন এবং কম স্টকের সতর্কতা দেখানোর জন্য প্রয়োজন।",
+    onboardingExactAlarmTitle = "একজ্যাক্ট অ্যালার্ম (Exact Alarm)",
+    onboardingExactAlarmDesc = "ফোন আইডল বা স্লিপ মোডে থাকলেও ঠিক নির্ধারিত মিনিটে অ্যালার্ম বাজানোর জন্য প্রয়োজন।",
+    onboardingLimitedTitle = "পারমিশন না দিলে কী সীমিত হবে?",
+    onboardingLimitedDesc = "নোটিফিকেশন ও একজ্যাক্ট অ্যালার্ম অনুমতি না দিলে সময়মতো স্ক্রিনে ডোজ রিমাইন্ডার, অ্যালার্ম নোটিফিকেশন এবং ঠিক সময়ে অ্যালার্ম বাজা বন্ধ বা দেরি হতে পারে।",
+    onboardingDeniedTitle = "কিছু পারমিশন দেওয়া হয়নি",
+    onboardingDeniedDesc = "আপনি ওষুধ যোগ করা ও PDF রিপোর্ট সেভ করতে পারবেন, তবে অ্যালার্ম ও পপ-আপ রিমাইন্ডার সঠিকভাবে কাজ করতে সেটিংস থেকে পারমিশন চালু করা প্রয়োজন।",
+    continueButtonLabel = "Continue",
+    skipForNowLabel = "এখন নয়",
+    allowExactAlarmLabel = "একজ্যাক্ট অ্যালার্ম চালু করুন",
+    openAppSettingsLabel = "সেটিংস খুলুন",
+    continueToDashboardLabel = "ড্যাশবোর্ডে যান"
 )
 
 fun stringsFor(language: AppLanguage): AppStrings =

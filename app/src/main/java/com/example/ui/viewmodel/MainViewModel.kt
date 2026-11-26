@@ -67,6 +67,7 @@ data class MediAlertUiState(
     val selectedMedicineTypeFilter: MedicineType? = null,
     val permissionHealth: PermissionHealthState = PermissionHealthState(true, true, true, true),
     val lastSavedPdfReport: SavedPdfReport? = null,
+    val hasLoadedPreferences: Boolean = false,
     val currentTimeMillis: Long = System.currentTimeMillis()
 )
 
@@ -245,6 +246,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             selectedMedicineTypeFilter = filters.typeFilter,
             permissionHealth = filters.permissionHealth,
             lastSavedPdfReport = lastSavedPdf,
+            hasLoadedPreferences = true,
             currentTimeMillis = nowMillis
         )
     }.stateIn(
@@ -255,6 +257,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshPermissionsHealth() {
         _permissionHealth.value = PermissionHelper.checkHealth(app)
+    }
+
+    fun completePermissionOnboarding() {
+        viewModelScope.launch {
+            prefsRepo.setPermissionOnboardingCompleted(true)
+        }
     }
 
     fun selectDateEpochDay(epochDay: Long) {

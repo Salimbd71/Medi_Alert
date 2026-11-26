@@ -7,7 +7,10 @@ import android.content.Intent
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -89,7 +92,9 @@ import com.example.ui.strings.LocalAppStrings
 import com.example.ui.theme.GlassBackdrop
 import com.example.ui.theme.MediAlertTheme
 import com.example.ui.viewmodel.MainViewModel
+import com.example.util.PermissionHelper
 import com.example.util.SavedPdfReport
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class MainTab {
@@ -112,6 +117,17 @@ fun MediAlertApp(viewModel: MainViewModel) {
     val prefs = uiState.preferences
     val locked = prefs.isLockActive && !isUnlocked
 
+    var minSplashElapsed by remember { mutableStateOf(false) }
+    var onboardingRequestedSystemDialog by remember { mutableStateOf(false) }
+    var showOnboardingFollowUp by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(1500L)
+        minSplashElapsed = true
+    }
+
+    val showSplash = !minSplashElapsed || !uiState.hasLoadedPreferences
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { msg ->
             snackbarHostState.showSnackbar(msg)
@@ -120,8 +136,17 @@ fun MediAlertApp(viewModel: MainViewModel) {
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) {
+    ) { granted ->
         viewModel.refreshPermissionsHealth()
+        if (onboardingRequestedSystemDialog) {
+            onboardingRequestedSystemDialog = false
+            val freshHealth = PermissionHelper.checkHealth(context)
+            if (granted && freshHealth.canScheduleExactAlarms) {
+                viewModel.completePermissionOnboarding()
+            } else {
+                showOnboardingFollowUp = true
+            }
+        }
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -135,11 +160,12 @@ fun MediAlertApp(viewModel: MainViewModel) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            !uiState.permissionHealth.hasNotificationPermission
+    LaunchedEffect(uiState.permissionHealth, showOnboardingFollowUp) {
+        if (showOnboardingFollowUp &&
+            uiState.permissionHealth.hasNotificationPermission &&
+            uiState.permissionHealth.canScheduleExactAlarms
         ) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            viewModel.completePermissionOnboarding()
         }
     }
 
@@ -199,6 +225,11 @@ fun MediAlertApp(viewModel: MainViewModel) {
                     openSavedPdf(saved)
                 }
             }
+        }
+
+        if (showSplash) {
+            AnimatedSplashScreen()
+            return@MediAlertTheme
         }
 
         if (locked) {
@@ -439,6 +470,40 @@ fun MediAlertApp(viewModel: MainViewModel) {
                 language = prefs.language,
                 onDismiss = { refillingMedicine = null },
                 onConfirmRefill = { qty -> viewModel.refillMedicine(med.id, qty) }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = !prefs.hasCompletedPermissionOnboarding,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            WelcomePermissionDialog(
+                permissionHealth = uiState.permissionHealth,
+                showFollowUpState = showOnboardingFollowUp,
+                onContinueClick = {
+                    val freshHealth = PermissionHelper.checkHealth(context)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        !freshHealth.hasNotificationPermission
+                    ) {
+                        onboardingRequestedSystemDialog = true
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else if (!freshHealth.canScheduleExactAlarms) {
+                        showOnboardingFollowUp = true
+                        PermissionHelper.openExactAlarmSettings(context)
+                    } else {
+                        viewModel.completePermissionOnboarding()
+                    }
+                },
+                onRequestExactAlarmClick = {
+                    PermissionHelper.openExactAlarmSettings(context)
+                },
+                onOpenSettingsClick = {
+                    PermissionHelper.openNotificationSettings(context)
+                },
+                onSkipOrFinishClick = {
+                    viewModel.completePermissionOnboarding()
+                }
             )
         }
     }

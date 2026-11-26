@@ -27,7 +27,8 @@ data class UserPreferences(
     val appLockEnabled: Boolean = false,
     val pinHash: String? = null,
     val biometricEnabled: Boolean = false,
-    val autoMissedWindowMinutes: Int = 30
+    val autoMissedWindowMinutes: Int = 30,
+    val hasCompletedPermissionOnboarding: Boolean = false
 ) {
     val hasPinLock: Boolean
         get() = !pinHash.isNullOrBlank()
@@ -47,6 +48,7 @@ class UserPreferencesRepository(private val context: Context) {
         val PIN_HASH = stringPreferencesKey("pin_hash")
         val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
         val AUTO_MISSED_MINUTES = intPreferencesKey("auto_missed_minutes")
+        val PERMISSION_ONBOARDING_DONE = booleanPreferencesKey("permission_onboarding_done")
     }
 
     val preferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
@@ -63,7 +65,8 @@ class UserPreferencesRepository(private val context: Context) {
             appLockEnabled = prefs[Keys.APP_LOCK_ENABLED] ?: false,
             pinHash = prefs[Keys.PIN_HASH],
             biometricEnabled = prefs[Keys.BIOMETRIC_ENABLED] ?: false,
-            autoMissedWindowMinutes = prefs[Keys.AUTO_MISSED_MINUTES] ?: 30
+            autoMissedWindowMinutes = prefs[Keys.AUTO_MISSED_MINUTES] ?: 30,
+            hasCompletedPermissionOnboarding = prefs[Keys.PERMISSION_ONBOARDING_DONE] ?: false
         )
     }
 
@@ -152,5 +155,9 @@ class UserPreferencesRepository(private val context: Context) {
 
     suspend fun setAutoMissedWindowMinutes(minutes: Int) {
         context.dataStore.edit { it[Keys.AUTO_MISSED_MINUTES] = minutes.coerceIn(15, 120) }
+    }
+
+    suspend fun setPermissionOnboardingCompleted(completed: Boolean = true) {
+        context.dataStore.edit { it[Keys.PERMISSION_ONBOARDING_DONE] = completed }
     }
 }
