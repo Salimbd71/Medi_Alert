@@ -511,33 +511,50 @@ fun DoseTimelineCard(
             AnimatedVisibility(visible = actionWindowOpen) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Button(
                         onClick = onTake,
                         modifier = Modifier
                             .weight(1f)
+                            .height(44.dp)
                             .testTag("take_dose_${dose.schedule.id}"),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = EmeraldTaken,
                             contentColor = Color.White
                         ),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(strings.takeAction)
+                        Text(
+                            text = strings.takeAction,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
 
-                    Box {
+                    Box(modifier = Modifier.weight(1f)) {
                         FilledTonalButton(
                             onClick = { showSnoozeMenu = true },
-                            modifier = Modifier.testTag("snooze_dose_${dose.schedule.id}"),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .testTag("snooze_dose_${dose.schedule.id}"),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                             shape = RoundedCornerShape(14.dp)
                         ) {
-                            Icon(Icons.Rounded.Snooze, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Rounded.Snooze, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(strings.snoozeAction)
+                            Text(
+                                text = strings.snoozeAction,
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                         DropdownMenu(
                             expanded = showSnoozeMenu,
@@ -569,12 +586,21 @@ fun DoseTimelineCard(
 
                     OutlinedButton(
                         onClick = onSkip,
-                        modifier = Modifier.testTag("skip_dose_${dose.schedule.id}"),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .testTag("skip_dose_${dose.schedule.id}"),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                         shape = RoundedCornerShape(14.dp)
                     ) {
-                        Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(strings.skipAction)
+                        Text(
+                            text = strings.skipAction,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }

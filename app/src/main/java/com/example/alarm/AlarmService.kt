@@ -13,6 +13,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import com.example.data.local.MediAlertDatabase
 import com.example.data.local.UserPreferencesRepository
 import com.example.data.model.AppLanguage
@@ -37,6 +38,8 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
     private var pendingVoicePrompt: String? = null
     private var voiceLanguage: AppLanguage = AppLanguage.ENGLISH
     private var autoSilenceJob: Job? = null
+    private var voiceRepeatJob: Job? = null
+    private var volumeRestoreFallbackJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -99,6 +102,15 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
                     if (ttsReady) {
                         speakPrompt(prompt, prefs.language)
                     }
+                    voiceRepeatJob?.cancel()
+                    voiceRepeatJob = serviceScope.launch {
+                        repeat(4) {
+                            delay(14_000L)
+                            if (ttsReady && mediaPlayer != null) {
+                                speakPrompt(prompt, prefs.language)
+                            }
+                        }
+                    }
                 }
 
                 // Auto-stop ringing after 90 seconds while leaving notification visible
@@ -116,6 +128,41 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             ttsReady = true
+            tts?.setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {
+                    serviceScope.launch(Dispatchers.Main) {
+                        setAlarmVolume(0.15f)
+                    }
+                }
+
+                override fun onDone(utteranceId: String?) {
+                    serviceScope.launch(Dispatchers.Main) {
+                        volumeRestoreFallbackJob?.cancel()
+                        setAlarmVolume(1.0f)
+                    }
+                }
+
+                @Deprecated("Deprecated in Java")
+                override fun onError(utteranceId: String?) {
+                    serviceScope.launch(Dispatchers.Main) {
+                        volumeRestoreFallbackJob?.cancel()
+                        setAlarmVolume(1.0f)
+                    }
+                }
+
+                override fun onError(utteranceId: String?, errorCode: Int) {
+                    serviceScope.launch(Dispatchers.Main) {
+                        volumeRestoreFallbackJob?.cancel()
+                        setAlarmVolume(1.0f)
+                    }
+                }
+            })
             pendingVoicePrompt?.let { prompt ->
                 speakPrompt(prompt, voiceLanguage)
             }
@@ -125,11 +172,28 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
     private fun speakPrompt(text: String, language: AppLanguage) {
         val engine = tts ?: return
         val targetLocale = if (language == AppLanguage.BANGLA) Locale("bn", "BD") else Locale.ENGLISH
-        val result = engine.setLanguage(targetLocale)
+        var result = engine.setLanguage(targetLocale)
+        if (language == AppLanguage.BANGLA &&
+            (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED)
+        ) {
+            result = engine.setLanguage(Locale("bn", "IN"))
+        }
         if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
             engine.setLanguage(Locale.ENGLISH)
         }
+        setAlarmVolume(0.15f)
+        volumeRestoreFallbackJob?.cancel()
+        volumeRestoreFallbackJob = serviceScope.launch {
+            delay(8_000L)
+            setAlarmVolume(1.0f)
+        }
         engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "medi_alert_voice")
+    }
+
+    private fun setAlarmVolume(volume: Float) {
+        runCatching {
+            mediaPlayer?.setVolume(volume, volume)
+        }
     }
 
     private fun buildVoicePrompt(
@@ -139,7 +203,7 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
     ): String {
         val meal = NotificationHelper.formatMealTiming(medicine.mealTiming, language)
         return if (language == AppLanguage.BANGLA) {
-            "${patient.name}, আপনার ${medicine.name}, ${medicine.dosageAmount} ${medicine.dosageUnit}, $meal নেওয়ার সময় হয়েছে।"
+            "আপনার ঔষধ খাওয়ার সময় হয়েছে। ${medicine.name}, ${medicine.dosageAmount} ${medicine.dosageUnit}, $meal।"
         } else {
             "Reminder for ${patient.name}. Time to take ${medicine.name}, ${medicine.dosageAmount} ${medicine.dosageUnit}, $meal."
         }
@@ -204,6 +268,8 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
 
     private fun stopAlarmPlayback() {
         autoSilenceJob?.cancel()
+        voiceRepeatJob?.cancel()
+        volumeRestoreFallbackJob?.cancel()
         runCatching {
             mediaPlayer?.stop()
             mediaPlayer?.release()
