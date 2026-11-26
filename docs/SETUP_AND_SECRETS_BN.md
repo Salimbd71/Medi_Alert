@@ -15,16 +15,16 @@
 
 ## ২. রিলিজ সাইনিং Keystore তৈরি করা
 
-Google Play Store-এ AAB বা Signed APK প্রকাশ করার জন্য একটি upload keystore প্রয়োজন। টার্মিনালে নিচের কমান্ডটি চালান (লক্ষ্য রাখুন: প্রজেক্টের `app/build.gradle.kts`-এ `keyAlias = "upload"` কনফিগার করা আছে):
+Google Play Store-এ AAB বা Signed APK প্রকাশ করার জন্য একটি upload keystore প্রয়োজন। টার্মিনালে নিচের কমান্ডটি চালান (অ্যালিয়াস হিসেবে `master_upload` ব্যবহার করুন):
 
 ```bash
 keytool -genkey -v -keystore my-upload-key.jks \
   -keyalg RSA -keysize 2048 -validity 10000 \
-  -alias upload
+  -alias master_upload
 ```
 
 কমান্ড চালানোর সময়:
-- **Keystore password** (`ANDROID_STORE_PASSWORD`) এবং **Key password** (`ANDROID_KEY_PASSWORD`) নিরাপদ স্থানে সংরক্ষণ করুন।
+- **Keystore password** (`MASTER_STORE_PASSWORD`) এবং **Key password** (`MASTER_KEY_PASSWORD`) নিরাপদ স্থানে সংরক্ষণ করুন।
 - Keystore ফাইলটিকে Git-এ কমিট করবেন না।
 
 ### Keystore-কে Base64 টেক্সটে রূপান্তর (GitHub Secret-এর জন্য)
@@ -53,9 +53,9 @@ base64 -w 0 my-upload-key.jks > keystore.base64.txt
 
 | Secret Name | মান (Value) | বিবরণ |
 | :--- | :--- | :--- |
-| `ANDROID_KEYSTORE_BASE64` | Base64 স্ট্রিং | `my-upload-key.jks` ফাইলের Base64 এনকোডেড টেক্সট |
-| `ANDROID_STORE_PASSWORD` | স্টোর পাসওয়ার্ড | Keystore তৈরির সময় দেওয়া Store Password |
-| `ANDROID_KEY_PASSWORD` | কী পাসওয়ার্ড | `upload` alias-এর Key Password |
+| `MASTER_KEYSTORE_BASE64` | Base64 স্ট্রিং | `my-upload-key.jks` ফাইলের Base64 এনকোডেড টেক্সট |
+| `MASTER_STORE_PASSWORD` | স্টোর পাসওয়ার্ড | Keystore তৈরির সময় দেওয়া Store Password |
+| `MASTER_KEY_PASSWORD` | কী পাসওয়ার্ড | `master_upload` alias-এর Key Password |
 
 > **সতর্কতা:** কখনোই পাসওয়ার্ড বা Base64 কী সরাসরি কোড বা README-তে লিখবেন না।
 

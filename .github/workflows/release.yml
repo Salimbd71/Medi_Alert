@@ -101,22 +101,22 @@ jobs:
         if: ${{ inputs.build_release_apk || inputs.build_release_aab }}
         shell: bash
         env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          STORE_PASS: ${{ secrets.ANDROID_STORE_PASSWORD }}
-          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEYSTORE_B64: ${{ secrets.MASTER_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.MASTER_STORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.MASTER_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           MISSING=0
           if [ -z "$KEYSTORE_B64" ]; then
-            echo "::error::Missing secret ANDROID_KEYSTORE_BASE64"
+            echo "::error::Missing secret MASTER_KEYSTORE_BASE64"
             MISSING=1
           fi
           if [ -z "$STORE_PASS" ]; then
-            echo "::error::Missing secret ANDROID_STORE_PASSWORD"
+            echo "::error::Missing secret MASTER_STORE_PASSWORD"
             MISSING=1
           fi
           if [ -z "$KEY_PASS" ]; then
-            echo "::error::Missing secret ANDROID_KEY_PASSWORD"
+            echo "::error::Missing secret MASTER_KEY_PASSWORD"
             MISSING=1
           fi
           if [ "$MISSING" -ne 0 ]; then
@@ -139,11 +139,22 @@ jobs:
         if: ${{ inputs.build_release_apk || inputs.build_release_aab }}
         shell: bash
         env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_B64: ${{ secrets.MASTER_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.MASTER_STORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.MASTER_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          echo "$KEYSTORE_B64" | tr -d '\n\r ' | base64 --decode > "${{ github.workspace }}/my-upload-key.jks"
-          test -s "${{ github.workspace }}/my-upload-key.jks"
+          KS_PATH="${{ github.workspace }}/my-upload-key.jks"
+          echo "$KEYSTORE_B64" | tr -d '\n\r ' | base64 --decode > "$KS_PATH"
+          test -s "$KS_PATH"
+          if keytool -list -keystore "$KS_PATH" -storepass "$STORE_PASS" -alias master_upload >/dev/null 2>&1; then
+            if ! keytool -list -keystore "$KS_PATH" -storepass "$STORE_PASS" -alias upload >/dev/null 2>&1; then
+              keytool -changealias -keystore "$KS_PATH" -alias master_upload -destalias upload -storepass "$STORE_PASS" -keypass "$KEY_PASS"
+            fi
+          elif ! keytool -list -keystore "$KS_PATH" -storepass "$STORE_PASS" -alias upload >/dev/null 2>&1; then
+            echo "::error::Keystore must contain alias 'master_upload' (or 'upload')."
+            exit 1
+          fi
 
       - name: Run unit tests
         id: tests
@@ -174,8 +185,8 @@ jobs:
         shell: bash
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
-          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.MASTER_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.MASTER_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           GRADLE_ARGS="-PappVersionName=${{ steps.version.outputs.version }} -PappVersionCode=${{ steps.version.outputs.version_code }} --no-daemon"
@@ -190,8 +201,8 @@ jobs:
         shell: bash
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
-          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.MASTER_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.MASTER_KEY_PASSWORD }}
         run: |
           set -euo pipefail
           GRADLE_ARGS="-PappVersionName=${{ steps.version.outputs.version }} -PappVersionCode=${{ steps.version.outputs.version_code }} --no-daemon"
