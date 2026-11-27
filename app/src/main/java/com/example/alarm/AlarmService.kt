@@ -104,7 +104,7 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
                 startSoundAndVibration(medicine.customSoundUri ?: prefs.customAlarmSoundUri)
 
                 if (prefs.voiceReminderEnabled && medicine.voiceReminderEnabled) {
-                    val bnPrompt = buildBanglaVoicePrompt(medicine)
+                    val bnPrompt = buildBanglaVoicePrompt(medicine, patient)
                     val enPrompt = buildEnglishVoicePrompt(medicine, patient)
                     pendingBanglaPrompt = bnPrompt
                     pendingEnglishPrompt = enPrompt
@@ -260,9 +260,18 @@ class AlarmService : Service(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun buildBanglaVoicePrompt(medicine: MedicineEntity): String {
+    private fun buildBanglaVoicePrompt(
+        medicine: MedicineEntity,
+        patient: PatientEntity
+    ): String {
         val meal = NotificationHelper.formatMealTiming(medicine.mealTiming, AppLanguage.BANGLA)
-        return "আপনার ঔষধ খাওয়ার সময় হয়েছে। ${medicine.name}, ${medicine.dosageAmount} ${medicine.dosageUnit}, $meal।"
+        val patientName = patient.name.trim()
+        val greeting = if (patientName.isNotEmpty()) {
+            "$patientName, আপনার ওষুধ খাওয়ার সময় হয়েছে।"
+        } else {
+            "আপনার ওষুধ খাওয়ার সময় হয়েছে।"
+        }
+        return "$greeting ${medicine.name}, ${medicine.dosageAmount} ${medicine.dosageUnit}, $meal।"
     }
 
     private fun buildEnglishVoicePrompt(
