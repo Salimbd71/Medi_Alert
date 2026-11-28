@@ -5,6 +5,8 @@ import android.app.TimePickerDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,18 +26,27 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -73,7 +84,7 @@ data class TimeSlotDraft(
     val minute: Int
 )
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditMedicineDialog(
     initialMedicine: MedicineWithSchedules?,
@@ -95,8 +106,17 @@ fun AddEditMedicineDialog(
     }
     var name by remember { mutableStateOf(existing?.name ?: "") }
     var type by remember { mutableStateOf(existing?.type ?: MedicineType.TABLET) }
+    var customTypeName by remember { mutableStateOf(existing?.customTypeName ?: "") }
     var dosageAmount by remember { mutableStateOf(existing?.dosageAmount ?: "1") }
     var dosageUnit by remember { mutableStateOf(existing?.dosageUnit ?: "Tablet") }
+    var unitManuallyEdited by remember { mutableStateOf(existing != null) }
+    var formDropdownExpanded by remember { mutableStateOf(false) }
+    var formSearchQuery by remember { mutableStateOf("") }
+    var showMoreFormChips by remember {
+        mutableStateOf(
+            existing != null && existing.type !in MedicineType.commonEntries.take(5)
+        )
+    }
     var mealTiming by remember { mutableStateOf(existing?.mealTiming ?: MealTiming.AFTER_FOOD) }
 
     val todayEpochDay = remember { DoseSchedulerCalculator.epochDayFromMillis(System.currentTimeMillis()) }
@@ -206,29 +226,178 @@ fun AddEditMedicineDialog(
                         .testTag("med_name_input")
                 )
 
+                fun selectMedicineForm(medType: MedicineType, customName: String? = null) {
+                    type = medType
+                    if (medType == MedicineType.OTHER && customName != null) {
+                        customTypeName = customName
+                    }
+                    if (!unitManuallyEdited) {
+                        dosageUnit = strings.defaultUnitFor(medType)
+                    }
+                    formDropdownExpanded = false
+                    formSearchQuery = ""
+                }
+
                 Text(strings.medicineTypeLabel, style = MaterialTheme.typography.labelLarge)
+
+                val filteredFormOptions = remember(formSearchQuery, language) {
+                    val q = formSearchQuery.trim().lowercase()
+                    if (q.isEmpty()) {
+                        MedicineType.entries.toList()
+                    } else {
+                        MedicineType.entries.filter { medType ->
+                            strings.medicineType(medType).lowercase().contains(q) ||
+                                medType.name.lowercase().replace('_', ' ').contains(q) ||
+                                strings.defaultUnitFor(medType).lowercase().contains(q)
+                        }
+                    }
+                }
+
+                ExposedDropdownMenuBox(
+                    expanded = formDropdownExpanded,
+                    onExpandedChange = { expanding ->
+                        formDropdownExpanded = expanding
+                        if (!expanding) formSearchQuery = ""
+                    }
+                ) {
+                    OutlinedTextField(
+                        value = if (formDropdownExpanded) formSearchQuery else strings.medicineDisplayType(type, customTypeName),
+                        onValueChange = {
+                            formSearchQuery = it
+                            if (!formDropdownExpanded) formDropdownExpanded = true
+                        },
+                        placeholder = { Text(strings.searchFormPlaceholder) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (formDropdownExpanded) Icons.Rounded.Search else medicineTypeIcon(type),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            if (formDropdownExpanded && formSearchQuery.isNotEmpty()) {
+                                IconButton(onClick = { formSearchQuery = "" }) {
+                                    Icon(Icons.Rounded.Close, contentDescription = null)
+                                }
+                            } else {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = formDropdownExpanded)
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryEditable, enabled = true)
+                            .testTag("med_form_dropdown")
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = formDropdownExpanded,
+                        onDismissRequest = {
+                            formDropdownExpanded = false
+                            formSearchQuery = ""
+                        }
+                    ) {
+                        filteredFormOptions.forEach { medType ->
+                            DropdownMenuItem(
+                                text = { Text(strings.medicineType(medType)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = medicineTypeIcon(medType),
+                                        contentDescription = null,
+                                        tint = if (type == medType) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                trailingIcon = if (type == medType) {
+                                    {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                } else null,
+                                onClick = { selectMedicineForm(medType) }
+                            )
+                        }
+                        val trimmedSearch = formSearchQuery.trim()
+                        if (trimmedSearch.isNotEmpty()) {
+                            DropdownMenuItem(
+                                text = { Text("${strings.useCustomFormPrefix} \"$trimmedSearch\"") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = medicineTypeIcon(MedicineType.OTHER),
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                onClick = { selectMedicineForm(MedicineType.OTHER, trimmedSearch) }
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = strings.commonFormsQuickLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                val primaryFiveForms = remember { MedicineType.commonEntries.take(5) }
+                val visibleQuickForms = remember(showMoreFormChips) {
+                    if (showMoreFormChips) {
+                        MedicineType.commonEntries + MedicineType.OTHER
+                    } else {
+                        primaryFiveForms
+                    }
+                }
                 FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.animateContentSize(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    MedicineType.entries.forEach { medType ->
+                    visibleQuickForms.forEach { medType ->
                         FilterChip(
                             selected = type == medType,
-                            onClick = {
-                                type = medType
-                                if (existing == null) {
-                                    dosageUnit = when (medType) {
-                                        MedicineType.TABLET -> "Tablet"
-                                        MedicineType.CAPSULE -> "Capsule"
-                                        MedicineType.SYRUP -> "ml"
-                                        MedicineType.INJECTION -> "IU"
-                                    }
-                                }
+                            onClick = { selectMedicineForm(medType) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = medicineTypeIcon(medType),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             },
                             label = { Text(strings.medicineType(medType)) },
                             modifier = Modifier.testTag("med_type_${medType.name}")
                         )
                     }
+                    FilterChip(
+                        selected = showMoreFormChips,
+                        onClick = { showMoreFormChips = !showMoreFormChips },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = if (showMoreFormChips) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        label = {
+                            Text(if (showMoreFormChips) strings.lessFormsLabel else strings.moreFormsLabel)
+                        },
+                        modifier = Modifier.testTag("med_type_more_toggle")
+                    )
+                }
+
+                AnimatedVisibility(visible = type == MedicineType.OTHER) {
+                    OutlinedTextField(
+                        value = customTypeName,
+                        onValueChange = { customTypeName = it },
+                        label = { Text(strings.customFormLabel) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("med_custom_form_input")
+                    )
                 }
 
                 Row(
@@ -246,13 +415,41 @@ fun AddEditMedicineDialog(
                     )
                     OutlinedTextField(
                         value = dosageUnit,
-                        onValueChange = { dosageUnit = it },
+                        onValueChange = {
+                            dosageUnit = it
+                            unitManuallyEdited = it.isNotBlank()
+                        },
                         label = { Text(strings.dosageUnitLabel) },
                         singleLine = true,
                         modifier = Modifier
                             .weight(1f)
                             .testTag("med_unit_input")
                     )
+                }
+
+                val suggestedUnits = remember(type) { strings.suggestedUnitsFor(type) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = strings.quickUnitSuggestionsLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    suggestedUnits.forEach { unitOption ->
+                        FilterChip(
+                            selected = dosageUnit.equals(unitOption, ignoreCase = true),
+                            onClick = {
+                                dosageUnit = unitOption
+                                unitManuallyEdited = true
+                            },
+                            label = { Text(unitOption, style = MaterialTheme.typography.labelSmall) }
+                        )
+                    }
                 }
 
                 Text(strings.mealTimingLabel, style = MaterialTheme.typography.labelLarge)
@@ -475,8 +672,13 @@ fun AddEditMedicineDialog(
                         patientId = selectedPatientId,
                         name = trimmedName,
                         type = type,
+                        customTypeName = if (type == MedicineType.OTHER) {
+                            customTypeName.trim().takeIf { it.isNotEmpty() }
+                        } else {
+                            null
+                        },
                         dosageAmount = dosageAmount.ifBlank { "1" },
-                        dosageUnit = dosageUnit.ifBlank { "Tablet" },
+                        dosageUnit = dosageUnit.ifBlank { strings.defaultUnitFor(type) },
                         mealTiming = mealTiming,
                         startDateEpochDay = startDateEpochDay,
                         endDateEpochDay = if (hasEndDate) endDateEpochDay else null,

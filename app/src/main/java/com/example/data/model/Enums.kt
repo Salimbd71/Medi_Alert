@@ -4,7 +4,29 @@ enum class MedicineType {
     TABLET,
     CAPSULE,
     SYRUP,
-    INJECTION
+    INJECTION,
+    DROPS,
+    INHALER,
+    CREAM_OINTMENT,
+    SPRAY,
+    POWDER_SACHET,
+    SUPPOSITORY,
+    OTHER;
+
+    companion object {
+        val commonEntries: List<MedicineType> = listOf(
+            TABLET,
+            CAPSULE,
+            SYRUP,
+            INJECTION,
+            DROPS,
+            INHALER,
+            CREAM_OINTMENT,
+            SPRAY,
+            POWDER_SACHET,
+            SUPPOSITORY
+        )
+    }
 }
 
 enum class MealTiming {

@@ -162,13 +162,64 @@ data class AppStrings(
     val batteryGuideTitle: String,
     val batteryGuideBody: String,
     val openAppInfoLabel: String,
-    val openBatteryListLabel: String
+    val openBatteryListLabel: String,
+    val searchFormPlaceholder: String,
+    val customFormLabel: String,
+    val commonFormsQuickLabel: String,
+    val quickUnitSuggestionsLabel: String,
+    val useCustomFormPrefix: String,
+    val moreFormsLabel: String,
+    val lessFormsLabel: String
 ) {
     fun medicineType(type: MedicineType): String = when (type) {
         MedicineType.TABLET -> if (isBangla) "ট্যাবলেট" else "Tablet"
         MedicineType.CAPSULE -> if (isBangla) "ক্যাপসুল" else "Capsule"
         MedicineType.SYRUP -> if (isBangla) "সিরাপ" else "Syrup"
         MedicineType.INJECTION -> if (isBangla) "ইনজেকশন" else "Injection"
+        MedicineType.DROPS -> if (isBangla) "ড্রপ" else "Drops"
+        MedicineType.INHALER -> if (isBangla) "ইনহেলার" else "Inhaler"
+        MedicineType.CREAM_OINTMENT -> if (isBangla) "ক্রিম / মলম" else "Cream / Ointment"
+        MedicineType.SPRAY -> if (isBangla) "স্প্রে" else "Spray"
+        MedicineType.POWDER_SACHET -> if (isBangla) "পাউডার / স্যাশে" else "Powder / Sachet"
+        MedicineType.SUPPOSITORY -> if (isBangla) "সাপোজিটরি" else "Suppository"
+        MedicineType.OTHER -> if (isBangla) "অন্যান্য (কাস্টম)" else "Other (Custom)"
+    }
+
+    fun medicineDisplayType(type: MedicineType, customTypeName: String?): String {
+        val trimmed = customTypeName?.trim()
+        return if (type == MedicineType.OTHER && !trimmed.isNullOrEmpty()) {
+            trimmed
+        } else {
+            medicineType(type)
+        }
+    }
+
+    fun defaultUnitFor(type: MedicineType): String = when (type) {
+        MedicineType.TABLET -> "Tablet"
+        MedicineType.CAPSULE -> "Capsule"
+        MedicineType.SYRUP -> "ml"
+        MedicineType.INJECTION -> "IU"
+        MedicineType.DROPS -> "drops"
+        MedicineType.INHALER -> "puffs"
+        MedicineType.CREAM_OINTMENT -> "apply"
+        MedicineType.SPRAY -> "sprays"
+        MedicineType.POWDER_SACHET -> "sachet"
+        MedicineType.SUPPOSITORY -> "suppository"
+        MedicineType.OTHER -> "dose"
+    }
+
+    fun suggestedUnitsFor(type: MedicineType): List<String> = when (type) {
+        MedicineType.TABLET -> listOf("Tablet", "mg", "Half")
+        MedicineType.CAPSULE -> listOf("Capsule", "mg")
+        MedicineType.SYRUP -> listOf("ml", "tsp", "tbsp")
+        MedicineType.INJECTION -> listOf("IU", "ml", "mg")
+        MedicineType.DROPS -> listOf("drops", "ml")
+        MedicineType.INHALER -> listOf("puffs", "inhalation", "ml")
+        MedicineType.CREAM_OINTMENT -> listOf("apply", "thin layer", "g")
+        MedicineType.SPRAY -> listOf("sprays", "puffs")
+        MedicineType.POWDER_SACHET -> listOf("sachet", "scoop", "g")
+        MedicineType.SUPPOSITORY -> listOf("suppository", "dose")
+        MedicineType.OTHER -> listOf("dose", "patch", "ml", "mg")
     }
 
     fun mealTiming(timing: MealTiming): String = when (timing) {
@@ -394,7 +445,14 @@ Welcome to Medi Alert by SLM Technology. By using this application, you agree to
     batteryGuideTitle = "Set Unrestricted Battery (Android 15)",
     batteryGuideBody = "Some Android 15 phones block the quick battery popup. You can enable it manually in 3 quick steps:\n\n1. Tap \"Open App Info\" below.\n2. Tap \"App battery usage\" (or \"Battery\").\n3. Tap the \"Allow background usage\" text (not just the switch) and choose \"Unrestricted\".\n\nNote: Medi Alert uses AlarmClock priority so dose alarms still ring on time.",
     openAppInfoLabel = "Open App Info",
-    openBatteryListLabel = "All Battery Settings"
+    openBatteryListLabel = "All Battery Settings",
+    searchFormPlaceholder = "Search form or tap to pick...",
+    customFormLabel = "Custom form name (e.g., Patch, Lotion)",
+    commonFormsQuickLabel = "Quick Pick",
+    quickUnitSuggestionsLabel = "Quick unit:",
+    useCustomFormPrefix = "Use custom form:",
+    moreFormsLabel = "More",
+    lessFormsLabel = "Less"
 )
 
 val BanglaStrings = AppStrings(
@@ -584,7 +642,14 @@ SLM Technology-র তৈরি Medi Alert ব্যবহার করার �
     batteryGuideTitle = "আনরেস্ট্রিক্টেড ব্যাটারি সেটিংস (Android 15)",
     batteryGuideBody = "অ্যান্ড্রয়েড ১৫-তে অনেক সময় সরাসরি ব্যাটারি পপ-আপ কাজ করে না। নিচের ৩টি সহজ ধাপে এটি ঠিক করুন:\n\n১. নিচের \"অ্যাপ ইনফো খুলুন\" বাটনে ট্যাপ করুন।\n২. \"App battery usage\" বা \"Battery\" অপশনে যান।\n৩. \"Allow background usage\" লেখার ওপর ট্যাপ করে \"Unrestricted\" (সীমাহীন) সিলেক্ট করুন।\n\nউল্লেখ্য: Medi Alert-এ AlarmClock সিস্টেম থাকায় অ্যালার্ম এমনিতেও সঠিক সময়ে বাজবে।",
     openAppInfoLabel = "অ্যাপ ইনফো খুলুন",
-    openBatteryListLabel = "সকল ব্যাটারি তালিকা"
+    openBatteryListLabel = "সকল ব্যাটারি তালিকা",
+    searchFormPlaceholder = "ফর্ম খুঁজুন বা বেছে নিন...",
+    customFormLabel = "কাস্টম ফর্মের নাম (যেমন: Patch, Lotion)",
+    commonFormsQuickLabel = "দ্রুত বাছাই",
+    quickUnitSuggestionsLabel = "দ্রুত ইউনিট:",
+    useCustomFormPrefix = "কাস্টম ফর্ম ব্যবহার করুন:",
+    moreFormsLabel = "আরও",
+    lessFormsLabel = "কম"
 )
 
 fun stringsFor(language: AppLanguage): AppStrings =

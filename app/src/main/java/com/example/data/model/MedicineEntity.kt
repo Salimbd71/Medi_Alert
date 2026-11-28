@@ -22,6 +22,7 @@ data class MedicineEntity(
     val patientId: Long,
     val name: String,
     val type: MedicineType = MedicineType.TABLET,
+    val customTypeName: String? = null,
     val dosageAmount: String = "1",
     val dosageUnit: String = "Tablet",
     val mealTiming: MealTiming = MealTiming.AFTER_FOOD,

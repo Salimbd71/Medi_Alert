@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.model.DoseLogEntity
 import com.example.data.model.MedicineEntity
 import com.example.data.model.PatientEntity
@@ -17,7 +19,7 @@ import com.example.data.model.ScheduleEntity
         ScheduleEntity::class,
         DoseLogEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(MediAlertConverters::class)
@@ -31,6 +33,12 @@ abstract class MediAlertDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: MediAlertDatabase? = null
 
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medicines ADD COLUMN customTypeName TEXT")
+            }
+        }
+
         fun getInstance(context: Context): MediAlertDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -38,6 +46,7 @@ abstract class MediAlertDatabase : RoomDatabase() {
                     MediAlertDatabase::class.java,
                     "medi_alert.db"
                 )
+                    .addMigrations(MIGRATION_1_2)
                     .fallbackToDestructiveMigration(false)
                     .build()
                     .also { INSTANCE = it }

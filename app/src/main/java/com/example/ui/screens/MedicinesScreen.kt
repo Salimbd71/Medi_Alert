@@ -116,6 +116,15 @@ fun MedicinesScreen(
                         .testTag("medicine_search_input")
                 )
 
+                val filterTypes = remember(uiState.allMedicines, uiState.selectedMedicineTypeFilter) {
+                    val used = uiState.allMedicines.map { it.medicine.type }.distinct()
+                    val base = if (used.isEmpty()) {
+                        MedicineType.commonEntries.take(5)
+                    } else {
+                        MedicineType.entries.filter { it in used || it == uiState.selectedMedicineTypeFilter }
+                    }
+                    base
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -128,12 +137,19 @@ fun MedicinesScreen(
                         label = { Text(strings.allTypes) },
                         modifier = Modifier.testTag("filter_type_all")
                     )
-                    MedicineType.entries.forEach { type ->
+                    filterTypes.forEach { type ->
                         FilterChip(
                             selected = uiState.selectedMedicineTypeFilter == type,
                             onClick = {
                                 onTypeFilterChange(
                                     if (uiState.selectedMedicineTypeFilter == type) null else type
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = medicineTypeIcon(type),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
                                 )
                             },
                             label = { Text(strings.medicineType(type)) },
@@ -214,7 +230,7 @@ fun MedicinesScreen(
                             ) {
                                 Icon(
                                     imageVector = medicineTypeIcon(med.type),
-                                    contentDescription = strings.medicineType(med.type),
+                                    contentDescription = strings.medicineDisplayType(med.type, med.customTypeName),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -226,7 +242,9 @@ fun MedicinesScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "${med.dosageAmount} ${med.dosageUnit} • ${strings.medicineType(med.type)} • ${
+                                    text = "${med.dosageAmount} ${med.dosageUnit} • ${
+                                        strings.medicineDisplayType(med.type, med.customTypeName)
+                                    } • ${
                                         strings.mealTiming(med.mealTiming)
                                     }",
                                     style = MaterialTheme.typography.bodySmall,

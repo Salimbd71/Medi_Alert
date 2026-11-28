@@ -24,13 +24,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Air
+import androidx.compose.material.icons.rounded.Category
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Grain
+import androidx.compose.material.icons.rounded.Healing
 import androidx.compose.material.icons.rounded.Inventory2
+import androidx.compose.material.icons.rounded.LocalPharmacy
 import androidx.compose.material.icons.rounded.Medication
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.Opacity
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.Shower
 import androidx.compose.material.icons.rounded.Snooze
 import androidx.compose.material.icons.rounded.Vaccines
 import androidx.compose.material.icons.rounded.WarningAmber
@@ -453,7 +461,7 @@ fun DoseTimelineCard(
                 ) {
                     Icon(
                         imageVector = medicineTypeIcon(dose.medicine.type),
-                        contentDescription = strings.medicineType(dose.medicine.type),
+                        contentDescription = strings.medicineDisplayType(dose.medicine.type, dose.medicine.customTypeName),
                         tint = statusFg
                     )
                 }
@@ -641,7 +649,14 @@ fun DoseTimelineCard(
 
 fun medicineTypeIcon(type: MedicineType): ImageVector = when (type) {
     MedicineType.TABLET -> Icons.Rounded.Medication
-    MedicineType.CAPSULE -> Icons.Rounded.Medication
+    MedicineType.CAPSULE -> Icons.Rounded.LocalPharmacy
     MedicineType.SYRUP -> Icons.Rounded.WaterDrop
     MedicineType.INJECTION -> Icons.Rounded.Vaccines
+    MedicineType.DROPS -> Icons.Rounded.Opacity
+    MedicineType.INHALER -> Icons.Rounded.Air
+    MedicineType.CREAM_OINTMENT -> Icons.Rounded.Healing
+    MedicineType.SPRAY -> Icons.Rounded.Shower
+    MedicineType.POWDER_SACHET -> Icons.Rounded.Grain
+    MedicineType.SUPPOSITORY -> Icons.Rounded.Science
+    MedicineType.OTHER -> Icons.Rounded.Category
 }

@@ -55,6 +55,7 @@ object BackupJsonSerializer {
                     put("patientId", m.patientId)
                     put("name", m.name)
                     put("type", m.type.name)
+                    put("customTypeName", m.customTypeName ?: JSONObject.NULL)
                     put("dosageAmount", m.dosageAmount)
                     put("dosageUnit", m.dosageUnit)
                     put("mealTiming", m.mealTiming.name)
@@ -149,6 +150,7 @@ object BackupJsonSerializer {
                     patientId = obj.getLong("patientId"),
                     name = obj.getString("name"),
                     type = runCatching { MedicineType.valueOf(obj.optString("type")) }.getOrDefault(MedicineType.TABLET),
+                    customTypeName = if (obj.isNull("customTypeName")) null else obj.optString("customTypeName").takeIf { it.isNotBlank() },
                     dosageAmount = obj.optString("dosageAmount", "1"),
                     dosageUnit = obj.optString("dosageUnit", "Tablet"),
                     mealTiming = runCatching { MealTiming.valueOf(obj.optString("mealTiming")) }.getOrDefault(MealTiming.AFTER_FOOD),

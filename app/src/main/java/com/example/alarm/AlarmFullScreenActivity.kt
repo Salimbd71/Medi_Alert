@@ -64,6 +64,7 @@ import com.example.data.model.MedicineEntity
 import com.example.data.model.PatientEntity
 import com.example.data.model.ScheduleEntity
 import com.example.data.model.ThemeMode
+import com.example.ui.screens.medicineTypeIcon
 import com.example.ui.strings.LocalAppStrings
 import com.example.ui.theme.EmeraldTaken
 import com.example.ui.theme.GlassBackdrop
@@ -235,13 +236,15 @@ private fun FullScreenAlarmContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Medication,
+                                    imageVector = medicineTypeIcon(medicine.type),
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
-                                    text = "${medicine.dosageAmount} ${medicine.dosageUnit} • ${strings.medicineType(medicine.type)}",
+                                    text = "${medicine.dosageAmount} ${medicine.dosageUnit} • ${
+                                        strings.medicineDisplayType(medicine.type, medicine.customTypeName)
+                                    }",
                                     style = MaterialTheme.typography.titleMedium
                                 )
                             }
