@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -78,6 +79,7 @@ import com.example.ui.theme.CoralAlert
 import com.example.ui.theme.EmeraldTaken
 import com.example.ui.theme.GlassCard
 import com.example.ui.theme.IndigoMuted
+import com.example.ui.theme.SkipRed
 import com.example.ui.theme.StatusPill
 import com.example.ui.viewmodel.MediAlertUiState
 import com.example.util.TimeFormatter
@@ -591,7 +593,12 @@ fun DoseTimelineCard(
                             .height(44.dp)
                             .testTag("skip_dose_${dose.schedule.id}"),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, SkipRed.copy(alpha = 0.65f)),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = SkipRed.copy(alpha = 0.10f),
+                            contentColor = SkipRed
+                        )
                     ) {
                         Icon(Icons.Rounded.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))

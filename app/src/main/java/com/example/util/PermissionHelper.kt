@@ -1,9 +1,11 @@
 package com.example.util
 
 import android.Manifest
+import android.app.Activity
 import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -63,13 +65,42 @@ object PermissionHelper {
         )
     }
 
+    fun findActivity(context: Context): Activity? {
+        var current: Context? = context
+        while (current is ContextWrapper) {
+            if (current is Activity) return current
+            current = current.baseContext
+        }
+        return null
+    }
+
+    fun canResolveIntent(context: Context, intent: Intent): Boolean {
+        return intent.resolveActivity(context.packageManager) != null
+    }
+
+    fun buildRequestIgnoreBatteryOptimizationsIntent(context: Context): Intent {
+        return Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+            data = Uri.parse("package:${context.packageName}")
+        }
+    }
+
+    fun buildAppDetailsSettingsIntent(context: Context): Intent {
+        return Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:${context.packageName}")
+        }
+    }
+
+    fun buildBatteryOptimizationListIntent(): Intent {
+        return Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+    }
+
     fun openExactAlarmSettings(context: Context) {
         val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
                 data = Uri.parse("package:${context.packageName}")
             }
         } else {
-            appSettingsIntent(context)
+            buildAppDetailsSettingsIntent(context)
         }
         launchSafely(context, intent)
     }
@@ -80,25 +111,34 @@ object PermissionHelper {
                 data = Uri.parse("package:${context.packageName}")
             }
         } else {
-            appSettingsIntent(context)
+            buildAppDetailsSettingsIntent(context)
         }
         launchSafely(context, intent)
     }
 
     fun openBatteryOptimizationSettings(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val directIntent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                data = Uri.parse("package:${context.packageName}")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val activity = findActivity(context)
+            val directIntent = buildRequestIgnoreBatteryOptimizationsIntent(context)
+            if (canResolveIntent(context, directIntent)) {
+                val started = runCatching {
+                    if (activity != null) {
+                        activity.startActivity(directIntent)
+                    } else {
+                        directIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(directIntent)
+                    }
+                }.isSuccess
+                if (started) return
             }
-            val started = runCatching {
-                context.startActivity(directIntent)
-            }.isSuccess
-            if (!started) {
-                launchSafely(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            val appDetails = buildAppDetailsSettingsIntent(context)
+            if (canResolveIntent(context, appDetails)) {
+                launchSafely(context, appDetails)
+            } else {
+                launchSafely(context, buildBatteryOptimizationListIntent())
             }
         } else {
-            launchSafely(context, appSettingsIntent(context))
+            launchSafely(context, buildAppDetailsSettingsIntent(context))
         }
     }
 
@@ -108,24 +148,29 @@ object PermissionHelper {
                 putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
             }
         } else {
-            appSettingsIntent(context)
+            buildAppDetailsSettingsIntent(context)
         }
         launchSafely(context, intent)
     }
 
-    private fun appSettingsIntent(context: Context): Intent {
-        return Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.parse("package:${context.packageName}")
-        }
-    }
-
     private fun launchSafely(context: Context, intent: Intent) {
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val activity = findActivity(context)
         runCatching {
-            context.startActivity(intent)
+            if (activity != null) {
+                activity.startActivity(intent)
+            } else {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            }
         }.onFailure {
             runCatching {
-                context.startActivity(appSettingsIntent(context).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                val fallback = buildAppDetailsSettingsIntent(context)
+                if (activity != null) {
+                    activity.startActivity(fallback)
+                } else {
+                    fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(fallback)
+                }
             }
         }
     }

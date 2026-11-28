@@ -52,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -64,12 +65,12 @@ import com.example.data.model.PatientEntity
 import com.example.data.model.ScheduleEntity
 import com.example.data.model.ThemeMode
 import com.example.ui.strings.LocalAppStrings
-import com.example.ui.theme.CoralAlert
 import com.example.ui.theme.EmeraldTaken
 import com.example.ui.theme.GlassBackdrop
 import com.example.ui.theme.GlassCard
 import com.example.ui.theme.MediAlertTheme
 import com.example.ui.theme.MintAccent
+import com.example.ui.theme.SkipRed
 import com.example.ui.theme.StatusPill
 import com.example.util.TimeFormatter
 
@@ -272,12 +273,16 @@ private fun FullScreenAlarmContent(
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = EmeraldTaken,
-                        contentColor = androidx.compose.ui.graphics.Color.White
+                        contentColor = Color.White
                     )
                 ) {
                     Icon(Icons.Rounded.CheckCircle, contentDescription = null)
                     Spacer(Modifier.size(10.dp))
-                    Text(strings.takeAction, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = strings.takeAction,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
                 Row(
@@ -318,18 +323,25 @@ private fun FullScreenAlarmContent(
                     }
                 }
 
-                OutlinedButton(
+                Button(
                     onClick = { onAction(AlarmConstants.ACTION_MARK_SKIPPED) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
+                        .height(52.dp)
                         .testTag("alarm_skip_button"),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CoralAlert)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SkipRed,
+                        contentColor = Color.White
+                    )
                 ) {
                     Icon(Icons.Rounded.Close, contentDescription = null)
                     Spacer(Modifier.size(8.dp))
-                    Text(strings.skipAction)
+                    Text(
+                        text = strings.skipAction,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }

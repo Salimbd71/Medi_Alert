@@ -8,6 +8,7 @@ val MintAccent = Color(0xFF2EC4B6)
 val SkyTint = Color(0xFFE5F6F8)
 
 val CoralAlert = Color(0xFFE05A47)
+val SkipRed = Color(0xFFDC2626)
 val AmberWarning = Color(0xFFF59E0B)
 val EmeraldTaken = Color(0xFF10B981)
 val IndigoMuted = Color(0xFF64748B)

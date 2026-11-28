@@ -72,6 +72,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,6 +100,8 @@ import com.example.ui.theme.StatusPill
 import com.example.ui.viewmodel.MediAlertUiState
 import com.example.util.PermissionHelper
 import com.example.util.TimeFormatter
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsProfilesScreen(
@@ -113,6 +116,7 @@ fun SettingsProfilesScreen(
     onTestVoiceClick: () -> Unit,
     onMissedWindowChange: (Int) -> Unit,
     onRequestNotificationPermission: () -> Unit,
+    onRefreshPermissions: () -> Unit,
     onSetPinLock: (String) -> Unit,
     onClearPinLock: () -> Unit,
     onBiometricToggle: (Boolean) -> Unit,
@@ -123,11 +127,36 @@ fun SettingsProfilesScreen(
     val strings = LocalAppStrings.current
     val context = LocalContext.current
     val prefs = uiState.preferences
+    val scope = rememberCoroutineScope()
 
     var editingPatient by remember { mutableStateOf<PatientEntity?>(null) }
     var showPatientDialog by remember { mutableStateOf(false) }
     var showSetPinDialog by remember { mutableStateOf(false) }
+    var showBatteryGuideDialog by remember { mutableStateOf(false) }
     var legalDialogContent by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    val batteryOptLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        onRefreshPermissions()
+        scope.launch {
+            delay(300L)
+            onRefreshPermissions()
+            if (!PermissionHelper.checkHealth(context).isIgnoringBatteryOptimizations) {
+                showBatteryGuideDialog = true
+            }
+        }
+    }
+
+    val appInfoBatteryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        onRefreshPermissions()
+        scope.launch {
+            delay(300L)
+            onRefreshPermissions()
+        }
+    }
 
     fun openMailDeveloper() {
         runCatching {
@@ -475,7 +504,24 @@ fun SettingsProfilesScreen(
                         isGranted = health.isIgnoringBatteryOptimizations,
                         grantedLabel = strings.granted,
                         fixLabel = strings.needsAttention,
-                        onClick = { PermissionHelper.openBatteryOptimizationSettings(context) }
+                        onClick = {
+                            if (health.isIgnoringBatteryOptimizations) {
+                                appInfoBatteryLauncher.launch(PermissionHelper.buildAppDetailsSettingsIntent(context))
+                            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                val directIntent = PermissionHelper.buildRequestIgnoreBatteryOptimizationsIntent(context)
+                                if (PermissionHelper.canResolveIntent(context, directIntent)) {
+                                    runCatching {
+                                        batteryOptLauncher.launch(directIntent)
+                                    }.onFailure {
+                                        showBatteryGuideDialog = true
+                                    }
+                                } else {
+                                    showBatteryGuideDialog = true
+                                }
+                            } else {
+                                onRefreshPermissions()
+                            }
+                        }
                     )
                 }
             }
@@ -914,6 +960,59 @@ fun SettingsProfilesScreen(
             },
             dismissButton = {
                 TextButton(onClick = { legalDialogContent = null }) {
+                    Text(strings.closeLabel)
+                }
+            }
+        )
+    }
+
+    if (showBatteryGuideDialog) {
+        AlertDialog(
+            onDismissRequest = { showBatteryGuideDialog = false },
+            title = { Text(strings.batteryGuideTitle, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 380.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = strings.batteryGuideBody,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FilledTonalButton(
+                        onClick = {
+                            showBatteryGuideDialog = false
+                            val listIntent = PermissionHelper.buildBatteryOptimizationListIntent()
+                            if (PermissionHelper.canResolveIntent(context, listIntent)) {
+                                runCatching { appInfoBatteryLauncher.launch(listIntent) }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(strings.openBatteryListLabel)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showBatteryGuideDialog = false
+                        runCatching {
+                            appInfoBatteryLauncher.launch(
+                                PermissionHelper.buildAppDetailsSettingsIntent(context)
+                            )
+                        }
+                    }
+                ) {
+                    Text(strings.openAppInfoLabel)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBatteryGuideDialog = false }) {
                     Text(strings.closeLabel)
                 }
             }

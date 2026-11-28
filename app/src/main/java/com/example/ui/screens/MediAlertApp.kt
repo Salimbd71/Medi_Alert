@@ -155,6 +155,10 @@ fun MediAlertApp(viewModel: MainViewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 viewModel.refreshPermissionsHealth()
+                scope.launch {
+                    delay(350L)
+                    viewModel.refreshPermissionsHealth()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -446,6 +450,7 @@ fun MediAlertApp(viewModel: MainViewModel) {
                                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                         }
                                     },
+                                    onRefreshPermissions = viewModel::refreshPermissionsHealth,
                                     onSetPinLock = viewModel::setPinLock,
                                     onClearPinLock = viewModel::clearPinLock,
                                     onBiometricToggle = viewModel::setBiometricEnabled,

@@ -158,7 +158,11 @@ data class AppStrings(
     val openAppSettingsLabel: String,
     val continueToDashboardLabel: String,
     val banglaTtsMissingMsg: String,
-    val installVoiceLabel: String
+    val installVoiceLabel: String,
+    val batteryGuideTitle: String,
+    val batteryGuideBody: String,
+    val openAppInfoLabel: String,
+    val openBatteryListLabel: String
 ) {
     fun medicineType(type: MedicineType): String = when (type) {
         MedicineType.TABLET -> if (isBangla) "ট্যাবলেট" else "Tablet"
@@ -386,7 +390,11 @@ Welcome to Medi Alert by SLM Technology. By using this application, you agree to
     openAppSettingsLabel = "Open Settings",
     continueToDashboardLabel = "Continue to Dashboard",
     banglaTtsMissingMsg = "Bangla voice pack not found on device TTS. Install Bangla voice for dual-language reminders.",
-    installVoiceLabel = "Install"
+    installVoiceLabel = "Install",
+    batteryGuideTitle = "Set Unrestricted Battery (Android 15)",
+    batteryGuideBody = "Some Android 15 phones block the quick battery popup. You can enable it manually in 3 quick steps:\n\n1. Tap \"Open App Info\" below.\n2. Tap \"App battery usage\" (or \"Battery\").\n3. Tap the \"Allow background usage\" text (not just the switch) and choose \"Unrestricted\".\n\nNote: Medi Alert uses AlarmClock priority so dose alarms still ring on time.",
+    openAppInfoLabel = "Open App Info",
+    openBatteryListLabel = "All Battery Settings"
 )
 
 val BanglaStrings = AppStrings(
@@ -572,7 +580,11 @@ SLM Technology-র তৈরি Medi Alert ব্যবহার করার �
     openAppSettingsLabel = "সেটিংস খুলুন",
     continueToDashboardLabel = "ড্যাশবোর্ডে যান",
     banglaTtsMissingMsg = "ফোনের TTS-এ বাংলা ভয়েস ডেটা নেই। বাংলা ভয়েস পেতে ডাউনলোড করুন।",
-    installVoiceLabel = "ডাউনলোড"
+    installVoiceLabel = "ডাউনলোড",
+    batteryGuideTitle = "আনরেস্ট্রিক্টেড ব্যাটারি সেটিংস (Android 15)",
+    batteryGuideBody = "অ্যান্ড্রয়েড ১৫-তে অনেক সময় সরাসরি ব্যাটারি পপ-আপ কাজ করে না। নিচের ৩টি সহজ ধাপে এটি ঠিক করুন:\n\n১. নিচের \"অ্যাপ ইনফো খুলুন\" বাটনে ট্যাপ করুন।\n২. \"App battery usage\" বা \"Battery\" অপশনে যান।\n৩. \"Allow background usage\" লেখার ওপর ট্যাপ করে \"Unrestricted\" (সীমাহীন) সিলেক্ট করুন।\n\nউল্লেখ্য: Medi Alert-এ AlarmClock সিস্টেম থাকায় অ্যালার্ম এমনিতেও সঠিক সময়ে বাজবে।",
+    openAppInfoLabel = "অ্যাপ ইনফো খুলুন",
+    openBatteryListLabel = "সকল ব্যাটারি তালিকা"
 )
 
 fun stringsFor(language: AppLanguage): AppStrings =
