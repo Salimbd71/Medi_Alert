@@ -180,7 +180,8 @@ object AdMobManager {
 @Composable
 fun AdMobBannerBar(
     modifier: Modifier = Modifier,
-    visible: Boolean = true
+    visible: Boolean = true,
+    inlineAdaptive: Boolean = false
 ) {
     if (!visible || !AdMobManager.isEnabled() || LocalInspectionMode.current) {
         return
@@ -214,10 +215,9 @@ fun AdMobBannerBar(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, bottom = 6.dp)
             .clip(cardShape)
             .background(brush = cardBrush, shape = cardShape)
-            .testTag("admob_banner_bar"),
+            .testTag(if (inlineAdaptive) "admob_inline_banner_bar" else "admob_banner_bar"),
         shape = cardShape,
         color = Color.Transparent,
         tonalElevation = 0.dp,
@@ -231,12 +231,19 @@ fun AdMobBannerBar(
             contentAlignment = Alignment.Center
         ) {
             val adWidthDp = maxWidth.value.toInt().coerceAtLeast(300)
-            val adView = remember(context, adWidthDp) {
+            val adView = remember(context, adWidthDp, inlineAdaptive) {
                 runCatching {
-                    val adaptiveSize = AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-                        context,
-                        adWidthDp
-                    )
+                    val adaptiveSize = if (inlineAdaptive) {
+                        AdSize.getCurrentOrientationInlineAdaptiveBannerAdSize(
+                            context,
+                            adWidthDp
+                        )
+                    } else {
+                        AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
+                            context,
+                            adWidthDp
+                        )
+                    }
                     AdView(context).apply {
                         adUnitId = BuildConfig.ADMOB_BANNER_ID
                         setAdSize(adaptiveSize)

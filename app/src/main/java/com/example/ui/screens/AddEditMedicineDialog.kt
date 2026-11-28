@@ -108,8 +108,18 @@ fun AddEditMedicineDialog(
     var type by remember { mutableStateOf(existing?.type ?: MedicineType.TABLET) }
     var customTypeName by remember { mutableStateOf(existing?.customTypeName ?: "") }
     var dosageAmount by remember { mutableStateOf(existing?.dosageAmount ?: "1") }
-    var dosageUnit by remember { mutableStateOf(existing?.dosageUnit ?: "Tablet") }
-    var unitManuallyEdited by remember { mutableStateOf(existing != null) }
+    var dosageUnit by remember { mutableStateOf(existing?.dosageUnit ?: strings.defaultUnitFor(type)) }
+    val allKnownUnits = remember(strings) {
+        MedicineType.entries
+            .flatMap { listOf(strings.defaultUnitFor(it)) + strings.suggestedUnitsFor(it) }
+            .map { it.lowercase() }
+            .toSet()
+    }
+    var unitManuallyEdited by remember {
+        mutableStateOf(
+            existing != null && existing.dosageUnit.trim().lowercase() !in allKnownUnits
+        )
+    }
     var formDropdownExpanded by remember { mutableStateOf(false) }
     var formSearchQuery by remember { mutableStateOf("") }
     var showMoreFormChips by remember {
@@ -227,12 +237,17 @@ fun AddEditMedicineDialog(
                 )
 
                 fun selectMedicineForm(medType: MedicineType, customName: String? = null) {
+                    val currentNormalized = dosageUnit.trim().lowercase()
+                    val shouldAutoSet = !unitManuallyEdited ||
+                        currentNormalized.isEmpty() ||
+                        currentNormalized in allKnownUnits
                     type = medType
                     if (medType == MedicineType.OTHER && customName != null) {
                         customTypeName = customName
                     }
-                    if (!unitManuallyEdited) {
+                    if (shouldAutoSet) {
                         dosageUnit = strings.defaultUnitFor(medType)
+                        unitManuallyEdited = false
                     }
                     formDropdownExpanded = false
                     formSearchQuery = ""
@@ -415,9 +430,10 @@ fun AddEditMedicineDialog(
                     )
                     OutlinedTextField(
                         value = dosageUnit,
-                        onValueChange = {
-                            dosageUnit = it
-                            unitManuallyEdited = it.isNotBlank()
+                        onValueChange = { newValue ->
+                            dosageUnit = newValue
+                            val normalized = newValue.trim().lowercase()
+                            unitManuallyEdited = normalized.isNotEmpty() && normalized !in allKnownUnits
                         },
                         label = { Text(strings.dosageUnitLabel) },
                         singleLine = true,
@@ -427,7 +443,7 @@ fun AddEditMedicineDialog(
                     )
                 }
 
-                val suggestedUnits = remember(type) { strings.suggestedUnitsFor(type) }
+                val suggestedUnits = remember(type, strings) { strings.suggestedUnitsFor(type) }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -445,9 +461,10 @@ fun AddEditMedicineDialog(
                             selected = dosageUnit.equals(unitOption, ignoreCase = true),
                             onClick = {
                                 dosageUnit = unitOption
-                                unitManuallyEdited = true
+                                unitManuallyEdited = false
                             },
-                            label = { Text(unitOption, style = MaterialTheme.typography.labelSmall) }
+                            label = { Text(unitOption, style = MaterialTheme.typography.labelSmall) },
+                            modifier = Modifier.testTag("quick_unit_${unitOption}")
                         )
                     }
                 }

@@ -8,10 +8,10 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <!-- Widget adaptive glass text colors (Light) -->
-    <color name="widget_accent">#085B63</color>
-    <color name="widget_text_primary">#0B2226</color>
-    <color name="widget_text_secondary">#36565C</color>
-    <color name="widget_countdown">#0A6C74</color>
-    <color name="widget_adherence_text">#047857</color>
+    <!-- Widget text colors over deep teal medicine background image -->
+    <color name="widget_accent">#99F6E4</color>
+    <color name="widget_text_primary">#FFFFFF</color>
+    <color name="widget_text_secondary">#D6F4F7</color>
+    <color name="widget_countdown">#FFFFFF</color>
+    <color name="widget_adherence_text">#A7F3D0</color>
 </resources>

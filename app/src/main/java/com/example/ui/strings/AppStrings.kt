@@ -195,8 +195,8 @@ data class AppStrings(
     }
 
     fun defaultUnitFor(type: MedicineType): String = when (type) {
-        MedicineType.TABLET -> "Tablet"
-        MedicineType.CAPSULE -> "Capsule"
+        MedicineType.TABLET -> "mg"
+        MedicineType.CAPSULE -> "mg"
         MedicineType.SYRUP -> "ml"
         MedicineType.INJECTION -> "IU"
         MedicineType.DROPS -> "drops"
@@ -205,21 +205,21 @@ data class AppStrings(
         MedicineType.SPRAY -> "sprays"
         MedicineType.POWDER_SACHET -> "sachet"
         MedicineType.SUPPOSITORY -> "suppository"
-        MedicineType.OTHER -> "dose"
+        MedicineType.OTHER -> "mg"
     }
 
     fun suggestedUnitsFor(type: MedicineType): List<String> = when (type) {
-        MedicineType.TABLET -> listOf("Tablet", "mg", "Half")
-        MedicineType.CAPSULE -> listOf("Capsule", "mg")
+        MedicineType.TABLET -> listOf("mg", "Tablet", "Half", "mcg")
+        MedicineType.CAPSULE -> listOf("mg", "Capsule", "mcg")
         MedicineType.SYRUP -> listOf("ml", "tsp", "tbsp")
         MedicineType.INJECTION -> listOf("IU", "ml", "mg")
         MedicineType.DROPS -> listOf("drops", "ml")
         MedicineType.INHALER -> listOf("puffs", "inhalation", "ml")
         MedicineType.CREAM_OINTMENT -> listOf("apply", "thin layer", "g")
-        MedicineType.SPRAY -> listOf("sprays", "puffs")
+        MedicineType.SPRAY -> listOf("sprays", "puffs", "ml")
         MedicineType.POWDER_SACHET -> listOf("sachet", "scoop", "g")
-        MedicineType.SUPPOSITORY -> listOf("suppository", "dose")
-        MedicineType.OTHER -> listOf("dose", "patch", "ml", "mg")
+        MedicineType.SUPPOSITORY -> listOf("suppository", "mg", "dose")
+        MedicineType.OTHER -> listOf("mg", "ml", "dose", "patch")
     }
 
     fun mealTiming(timing: MealTiming): String = when (timing) {

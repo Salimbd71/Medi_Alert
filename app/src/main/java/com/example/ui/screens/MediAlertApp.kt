@@ -86,7 +86,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
-import com.example.ads.AdMobBannerBar
 import com.example.ads.AdMobManager
 import com.example.data.model.AppLanguage
 import com.example.data.model.MedicineEntity
@@ -313,33 +312,28 @@ fun MediAlertApp(viewModel: MainViewModel) {
                         contentColor = MaterialTheme.colorScheme.onBackground,
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                         topBar = {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                MediAlertTopBar(
-                                    title = when (currentTab) {
-                                        MainTab.TODAY -> strings.appName
-                                        MainTab.MEDICINES -> strings.navMedicines
-                                        MainTab.HISTORY -> strings.navHistory
-                                        MainTab.SETTINGS -> strings.navSettings
-                                    },
-                                    subtitle = if (currentTab == MainTab.TODAY) {
-                                        if (prefs.language == AppLanguage.BANGLA) "স্মার্ট অফলাইন পিল ট্র্যাকার" else "Smart Offline Pill Tracker"
+                            MediAlertTopBar(
+                                title = when (currentTab) {
+                                    MainTab.TODAY -> strings.appName
+                                    MainTab.MEDICINES -> strings.navMedicines
+                                    MainTab.HISTORY -> strings.navHistory
+                                    MainTab.SETTINGS -> strings.navSettings
+                                },
+                                subtitle = if (currentTab == MainTab.TODAY) {
+                                    if (prefs.language == AppLanguage.BANGLA) "স্মার্ট অফলাইন পিল ট্র্যাকার" else "Smart Offline Pill Tracker"
+                                } else {
+                                    strings.appName
+                                },
+                                language = prefs.language,
+                                onToggleLanguage = {
+                                    val next = if (prefs.language == AppLanguage.ENGLISH) {
+                                        AppLanguage.BANGLA
                                     } else {
-                                        strings.appName
-                                    },
-                                    language = prefs.language,
-                                    onToggleLanguage = {
-                                        val next = if (prefs.language == AppLanguage.ENGLISH) {
-                                            AppLanguage.BANGLA
-                                        } else {
-                                            AppLanguage.ENGLISH
-                                        }
-                                        viewModel.setLanguage(next)
+                                        AppLanguage.ENGLISH
                                     }
-                                )
-                                AdMobBannerBar(
-                                    visible = prefs.hasCompletedPermissionOnboarding
-                                )
-                            }
+                                    viewModel.setLanguage(next)
+                                }
+                            )
                         },
                         floatingActionButton = {
                             if (currentTab == MainTab.TODAY || currentTab == MainTab.MEDICINES) {
@@ -393,6 +387,7 @@ fun MediAlertApp(viewModel: MainViewModel) {
                             when (tab) {
                                 MainTab.TODAY -> DashboardScreen(
                                     uiState = uiState,
+                                    showAds = prefs.hasCompletedPermissionOnboarding,
                                     onSelectPatient = viewModel::setActivePatientId,
                                     onTakeDose = viewModel::markDoseTaken,
                                     onSnoozeDose = viewModel::snoozeDose,
@@ -407,6 +402,7 @@ fun MediAlertApp(viewModel: MainViewModel) {
 
                                 MainTab.MEDICINES -> MedicinesScreen(
                                     uiState = uiState,
+                                    showAds = prefs.hasCompletedPermissionOnboarding,
                                     onSearchChange = viewModel::updateSearchQuery,
                                     onTypeFilterChange = viewModel::selectMedicineTypeFilter,
                                     onAddMedicineClick = {
@@ -424,6 +420,7 @@ fun MediAlertApp(viewModel: MainViewModel) {
 
                                 MainTab.HISTORY -> HistoryReportsScreen(
                                     uiState = uiState,
+                                    showAds = prefs.hasCompletedPermissionOnboarding,
                                     onSelectPeriod = viewModel::selectReportPeriod,
                                     onSelectDateEpochDay = viewModel::selectDateEpochDay,
                                     onSavePdfReport = {
@@ -452,6 +449,7 @@ fun MediAlertApp(viewModel: MainViewModel) {
 
                                 MainTab.SETTINGS -> SettingsProfilesScreen(
                                     uiState = uiState,
+                                    showAds = prefs.hasCompletedPermissionOnboarding,
                                     onSavePatient = viewModel::savePatient,
                                     onDeletePatient = viewModel::deletePatient,
                                     onSelectPatient = viewModel::setActivePatientId,

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Widget adaptive glass text colors (Dark) -->
-    <color name="widget_accent">#67E8F9</color>
-    <color name="widget_text_primary">#F0FAFC</color>
-    <color name="widget_text_secondary">#B4D6DC</color>
-    <color name="widget_countdown">#5EEAD4</color>
-    <color name="widget_adherence_text">#6EE7B7</color>
+    <!-- Widget text colors over deep teal medicine background image -->
+    <color name="widget_accent">#99F6E4</color>
+    <color name="widget_text_primary">#FFFFFF</color>
+    <color name="widget_text_secondary">#D6F4F7</color>
+    <color name="widget_countdown">#FFFFFF</color>
+    <color name="widget_adherence_text">#A7F3D0</color>
 </resources>

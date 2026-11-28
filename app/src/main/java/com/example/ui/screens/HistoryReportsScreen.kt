@@ -53,6 +53,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.ads.AdMobBannerBar
+import com.example.ads.AdMobManager
 import com.example.data.model.AppLanguage
 import com.example.data.model.DoseStatus
 import com.example.data.model.ReportPeriod
@@ -77,6 +79,7 @@ import java.util.Locale
 @Composable
 fun HistoryReportsScreen(
     uiState: MediAlertUiState,
+    showAds: Boolean = true,
     onSelectPeriod: (ReportPeriod) -> Unit,
     onSelectDateEpochDay: (Long) -> Unit,
     onSavePdfReport: () -> Unit,
@@ -257,6 +260,15 @@ fun HistoryReportsScreen(
                         }
                     }
                 }
+            }
+        }
+
+        if (showAds && AdMobManager.isEnabled()) {
+            item(key = "history_inline_banner_ad") {
+                AdMobBannerBar(
+                    visible = true,
+                    inlineAdaptive = true
+                )
             }
         }
 

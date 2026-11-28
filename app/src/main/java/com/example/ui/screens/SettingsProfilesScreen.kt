@@ -88,6 +88,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.BuildConfig
 import com.example.R
+import com.example.ads.AdMobBannerBar
+import com.example.ads.AdMobManager
 import com.example.data.model.AppLanguage
 import com.example.data.model.PatientEntity
 import com.example.data.model.ThemeMode
@@ -106,6 +108,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsProfilesScreen(
     uiState: MediAlertUiState,
+    showAds: Boolean = true,
     onSavePatient: (PatientEntity) -> Unit,
     onDeletePatient: (PatientEntity) -> Unit,
     onSelectPatient: (Long?) -> Unit,
@@ -202,6 +205,12 @@ fun SettingsProfilesScreen(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        if (showAds && AdMobManager.isEnabled()) {
+            item(key = "top_banner_ad") {
+                AdMobBannerBar(visible = true)
+            }
+        }
+
         // Multi-Patient Profiles
         item(key = "profiles_section") {
             GlassCard(modifier = Modifier.fillMaxWidth()) {

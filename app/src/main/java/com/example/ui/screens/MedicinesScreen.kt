@@ -63,6 +63,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.R
+import com.example.ads.AdMobBannerBar
+import com.example.ads.AdMobManager
 import com.example.data.model.AppLanguage
 import com.example.data.model.MedicineEntity
 import com.example.data.model.MedicineType
@@ -83,6 +85,7 @@ import java.io.File
 @Composable
 fun MedicinesScreen(
     uiState: MediAlertUiState,
+    showAds: Boolean = true,
     onSearchChange: (String) -> Unit,
     onTypeFilterChange: (MedicineType?) -> Unit,
     onAddMedicineClick: () -> Unit,
@@ -102,6 +105,12 @@ fun MedicinesScreen(
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        if (showAds && AdMobManager.isEnabled()) {
+            item(key = "top_banner_ad") {
+                AdMobBannerBar(visible = true)
+            }
+        }
+
         item(key = "search_and_filters") {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
