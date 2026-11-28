@@ -384,10 +384,10 @@ val EnglishStrings = AppStrings(
     privacyPolicyTitle = "Privacy Policy",
     termsConditionsTitle = "Terms & Conditions",
     privacyPolicyBody = """
-Medi Alert (developed by SLM Technology) is a 100% offline medication management app. Your privacy and health records stay strictly on your device.
+Medi Alert (developed by SLM Technology) stores all of your medication schedules, patient profiles, and dose logs strictly offline on your device.
 
-1. Zero Data Collection & Offline Storage
-• Medi Alert does NOT collect, transmit, sell, or share any personal or medical data.
+1. Local-First Health Storage
+• Medi Alert does NOT upload, transmit, sell, or share your personal health or prescription data to any remote server.
 • Patient profiles, medication schedules, dose history, PIN hashes, and prescriptions remain stored locally in your device's Room SQLite database and DataStore.
 
 2. Android Permissions & Why We Request Each One
@@ -400,7 +400,10 @@ Medi Alert (developed by SLM Technology) is a 100% offline medication management
 • Files, Prescriptions & PDF Exports: Prescription photos use the zero-permission Android Photo Picker, and PDF reports save directly into Download/Medi_Alert via Android's scoped MediaStore API without requesting broad storage access.
 • Biometric Authentication (USE_BIOMETRIC): Handled exclusively by Android's secure BiometricPrompt API; Medi Alert never reads or stores fingerprint data.
 
-3. Contact Developer
+3. Advertising (Google AdMob)
+• When advertising is enabled in this build, Google AdMob (Google Mobile Ads SDK) uses network access solely to load banner and occasional interstitial ads. AdMob may process device advertising signals in accordance with Google's Privacy Policy, and has zero access to your local medication records.
+
+4. Contact Developer
 If you have privacy questions, tap Mail Me to reach salimbd.ga@gmail.com.
 """.trimIndent(),
     termsConditionsBody = """
@@ -585,11 +588,11 @@ val BanglaStrings = AppStrings(
     privacyPolicyTitle = "প্রাইভেসি পলিসি (Privacy Policy)",
     termsConditionsTitle = "শর্তাবলি (Terms & Conditions)",
     privacyPolicyBody = """
-Medi Alert (ডেভেলপার: SLM Technology) একটি ১০০% অফলাইন ওষুধ ব্যবস্থাপনা অ্যাপ। আপনার সকল স্বাস্থ্য তথ্য শুধুমাত্র আপনার ফোনেই সংরক্ষিত থাকে।
+Medi Alert (ডেভেলপার: SLM Technology) আপনার সকল ওষুধের রুটিন, রোগীর প্রোফাইল ও ডোজের তথ্য সম্পূর্ণভাবে আপনার ফোনের ভেতরেই সংরক্ষণ করে।
 
-১. কোনো তথ্য সংগ্রহ করা হয় না (Zero Data Collection)
-• Medi Alert আপনার কোনো ব্যক্তিগত বা চিকিৎসা তথ্য সংগ্রহ, বিক্রি বা কোনো সার্ভারে পাঠায় না।
-• রোগীর প্রোফাইল, ওষুধের রুটিন, পিন হ্যাশ এবং প্রেসক্রিপশন সম্পূর্ণ অফলাইনে আপনার ফোনের লোকাল ডাটাবেজে থাকে।
+১. ফোনের ভেতরে স্বাস্থ্য তথ্যের সুরক্ষা
+• Medi Alert আপনার কোনো ব্যক্তিগত বা চিকিৎসা তথ্য কোনো সার্ভারে আপলোড, বিক্রি বা শেয়ার করে না।
+• রোগীর প্রোফাইল, ওষুধের রুটিন, পিন হ্যাশ এবং প্রেসক্রিপশন শুধুমাত্র আপনার ফোনের লোকাল ডাটাবেজে থাকে।
 
 ২. ব্যবহৃত অ্যান্ড্রয়েড পারমিশনগুলোর ব্যাখ্যা
 • নোটিফিকেশন (POST_NOTIFICATIONS): শুধুমাত্র নির্ধারিত সময়ে ওষুধের অ্যালার্ম, স্নুজ ও কম স্টক সতর্কতা দেখানোর জন্য।
@@ -601,7 +604,10 @@ Medi Alert (ডেভেলপার: SLM Technology) একটি ১০০% �
 • ফাইল, প্রেসক্রিপশন ও PDF সেভ: প্রেসক্রিপশনের ছবির জন্য পারমিশন-মুক্ত Android Photo Picker এবং PDF সেভ করার জন্য ফোনের সুরক্ষিত Download/Medi_Alert (MediaStore) ফোল্ডার ব্যবহার করা হয়।
 • বায়োমেট্রিক লক (USE_BIOMETRIC): অ্যান্ড্রয়েডের নিজস্ব সুরক্ষিত BiometricPrompt সিস্টেম ব্যবহার করে; অ্যাপ আপনার ফিঙ্গারপ্রিন্টের কোনো তথ্য সংরক্ষণ করে না।
 
-৩. যোগাযোগ
+৩. বিজ্ঞাপন (Google AdMob)
+• এই বিল্ডে বিজ্ঞাপন চালু থাকলে Google AdMob (Google Mobile Ads SDK) শুধুমাত্র ব্যানার ও প্রাসঙ্গিক ইন্টারস্টিশিয়াল বিজ্ঞাপন দেখাতে ইন্টারনেট ব্যবহার করে। AdMob আপনার লোকাল ওষুধ বা স্বাস্থ্য তথ্যে কোনো অ্যাক্সেস পায় না।
+
+৪. যোগাযোগ
 প্রাইভেসি সংক্রান্ত যেকোনো প্রশ্নে Mail Me বাটনে ট্যাপ করে salimbd.ga@gmail.com-এ মেইল করুন।
 """.trimIndent(),
     termsConditionsBody = """

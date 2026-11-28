@@ -1,6 +1,7 @@
 package com.example
 
 import android.app.Application
+import com.example.ads.AdMobManager
 import com.example.alarm.AlarmScheduler
 import com.example.alarm.NotificationHelper
 import com.example.data.local.MediAlertDatabase
@@ -26,6 +27,7 @@ class MediAlertApplication : Application() {
         super.onCreate()
         NotificationHelper.createChannels(this)
         applicationScope.launch(Dispatchers.IO) {
+            AdMobManager.initialize(this@MediAlertApplication)
             medicationRepository.ensureDefaultPatient()
             alarmScheduler.rescheduleAll()
         }

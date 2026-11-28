@@ -28,6 +28,11 @@ on:
         required: false
         default: true
         type: boolean
+      enable_admob:
+        description: "AdMob Ad (Include Banner & Interstitial Ads in Release APK & AAB)"
+        required: false
+        default: true
+        type: boolean
       publish_release:
         description: "Create Git tag and publish GitHub Release"
         required: false
@@ -173,7 +178,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          GRADLE_ARGS="-PappVersionName=${{ steps.version.outputs.version }} -PappVersionCode=${{ steps.version.outputs.version_code }} --no-daemon"
+          GRADLE_ARGS="-PappVersionName=${{ steps.version.outputs.version }} -PappVersionCode=${{ steps.version.outputs.version_code }} -PenableAdmob=${{ inputs.enable_admob }} --no-daemon"
           if [ -x "./gradlew" ]; then
             ./gradlew :app:assembleDebug $GRADLE_ARGS
           else
@@ -189,7 +194,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.MASTER_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          GRADLE_ARGS="-PappVersionName=${{ steps.version.outputs.version }} -PappVersionCode=${{ steps.version.outputs.version_code }} --no-daemon"
+          GRADLE_ARGS="-PappVersionName=${{ steps.version.outputs.version }} -PappVersionCode=${{ steps.version.outputs.version_code }} -PenableAdmob=${{ inputs.enable_admob }} --no-daemon"
           if [ -x "./gradlew" ]; then
             ./gradlew :app:assembleRelease $GRADLE_ARGS
           else
@@ -205,7 +210,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.MASTER_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          GRADLE_ARGS="-PappVersionName=${{ steps.version.outputs.version }} -PappVersionCode=${{ steps.version.outputs.version_code }} --no-daemon"
+          GRADLE_ARGS="-PappVersionName=${{ steps.version.outputs.version }} -PappVersionCode=${{ steps.version.outputs.version_code }} -PenableAdmob=${{ inputs.enable_admob }} --no-daemon"
           if [ -x "./gradlew" ]; then
             ./gradlew :app:bundleRelease $GRADLE_ARGS
           else
@@ -282,6 +287,7 @@ jobs:
             echo "| **Debug APK** | ${{ inputs.build_debug_apk }} |"
             echo "| **Release APK** | ${{ inputs.build_release_apk }} |"
             echo "| **Release AAB** | ${{ inputs.build_release_aab }} |"
+            echo "| **AdMob Ads** | ${{ inputs.enable_admob && 'Enabled' || 'Disabled' }} |"
             echo "| **GitHub Release** | ${{ inputs.publish_release }} |"
             echo ""
             echo "### Generated Artifacts"

@@ -19,6 +19,12 @@ android {
     versionCode = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1
     versionName = (project.findProperty("appVersionName") as String?) ?: "1.0"
 
+    val enableAdmob = (project.findProperty("enableAdmob") as String?)?.toBooleanStrictOrNull() ?: true
+    buildConfigField("boolean", "ADMOB_ENABLED", enableAdmob.toString())
+    buildConfigField("String", "ADMOB_APP_ID", "\"ca-app-pub-3239967742299196~5433090695\"")
+    buildConfigField("String", "ADMOB_INTERSTITIAL_ID", "\"ca-app-pub-3239967742299196/6790083592\"")
+    buildConfigField("String", "ADMOB_BANNER_ID", "\"ca-app-pub-3239967742299196/8103165269\"")
+
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -122,6 +128,7 @@ dependencies {
   // implementation(libs.moshi.kotlin)
   // implementation(libs.okhttp)
   // implementation(libs.play.services.location)
+  implementation(libs.play.services.ads)
   // implementation(libs.retrofit)
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)

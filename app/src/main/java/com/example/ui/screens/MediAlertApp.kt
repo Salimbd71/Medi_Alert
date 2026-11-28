@@ -86,6 +86,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.ads.AdMobBannerBar
+import com.example.ads.AdMobManager
 import com.example.data.model.AppLanguage
 import com.example.data.model.MedicineEntity
 import com.example.data.model.MedicineWithSchedules
@@ -221,6 +223,9 @@ fun MediAlertApp(viewModel: MainViewModel) {
 
         LaunchedEffect(strings) {
             viewModel.pdfSavedEvents.collect { saved ->
+                if (prefs.hasCompletedPermissionOnboarding) {
+                    AdMobManager.showInterstitialIfReady(PermissionHelper.findActivity(context))
+                }
                 val result = snackbarHostState.showSnackbar(
                     message = "${strings.pdfSavedToPrefix}: ${saved.displayPath}",
                     actionLabel = strings.openPdfLabel,
@@ -267,6 +272,12 @@ fun MediAlertApp(viewModel: MainViewModel) {
         var showAddEditDialog by remember { mutableStateOf(false) }
         var editingMedicine by remember { mutableStateOf<MedicineWithSchedules?>(null) }
         var refillingMedicine by remember { mutableStateOf<MedicineEntity?>(null) }
+
+        LaunchedEffect(prefs.hasCompletedPermissionOnboarding) {
+            if (prefs.hasCompletedPermissionOnboarding) {
+                AdMobManager.preloadInterstitial(context)
+            }
+        }
 
         GlassBackdrop {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -341,29 +352,39 @@ fun MediAlertApp(viewModel: MainViewModel) {
                             }
                         },
                         bottomBar = {
-                            if (!useNavRail) {
-                                NavigationBar(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.80f),
-                                    contentColor = MaterialTheme.colorScheme.onSurface,
-                                    tonalElevation = 0.dp,
-                                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
-                                ) {
-                                    MainTab.entries.forEach { tab ->
-                                        val selected = currentTab == tab
-                                        NavigationBarItem(
-                                            selected = selected,
-                                            onClick = { currentTab = tab },
-                                            icon = {
-                                                Icon(
-                                                    imageVector = tabIcon(tab, selected),
-                                                    contentDescription = tabLabel(tab, strings)
-                                                )
-                                            },
-                                            label = { Text(tabLabel(tab, strings)) },
-                                            modifier = Modifier.testTag("nav_${tab.name}")
-                                        )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f))
+                                    .windowInsetsPadding(WindowInsets.navigationBars)
+                            ) {
+                                if (!useNavRail) {
+                                    NavigationBar(
+                                        containerColor = Color.Transparent,
+                                        contentColor = MaterialTheme.colorScheme.onSurface,
+                                        tonalElevation = 0.dp,
+                                        windowInsets = WindowInsets(0, 0, 0, 0)
+                                    ) {
+                                        MainTab.entries.forEach { tab ->
+                                            val selected = currentTab == tab
+                                            NavigationBarItem(
+                                                selected = selected,
+                                                onClick = { currentTab = tab },
+                                                icon = {
+                                                    Icon(
+                                                        imageVector = tabIcon(tab, selected),
+                                                        contentDescription = tabLabel(tab, strings)
+                                                    )
+                                                },
+                                                label = { Text(tabLabel(tab, strings)) },
+                                                modifier = Modifier.testTag("nav_${tab.name}")
+                                            )
+                                        }
                                     }
                                 }
+                                AdMobBannerBar(
+                                    visible = prefs.hasCompletedPermissionOnboarding
+                                )
                             }
                         }
                     ) { innerPadding ->
@@ -481,6 +502,9 @@ fun MediAlertApp(viewModel: MainViewModel) {
                 onSave = { med, schedules, oldRxPath ->
                     viewModel.saveMedicine(med, schedules, oldRxPath)
                     showAddEditDialog = false
+                    if (prefs.hasCompletedPermissionOnboarding) {
+                        AdMobManager.showInterstitialIfReady(PermissionHelper.findActivity(context))
+                    }
                 }
             )
         }
