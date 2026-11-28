@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -462,17 +463,56 @@ fun DoseTimelineCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(statusBg),
+                    modifier = Modifier.size(48.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = medicineTypeIcon(dose.medicine.type),
-                        contentDescription = strings.medicineDisplayType(dose.medicine.type, dose.medicine.customTypeName),
-                        tint = statusFg
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(statusBg)
+                            .then(
+                                if (dose.status == DoseStatus.TAKEN) {
+                                    Modifier.border(
+                                        width = 1.5.dp,
+                                        color = EmeraldTaken,
+                                        shape = RoundedCornerShape(14.dp)
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = medicineTypeIcon(dose.medicine.type),
+                            contentDescription = strings.medicineDisplayType(dose.medicine.type, dose.medicine.customTypeName),
+                            tint = statusFg
+                        )
+                    }
+                    if (dose.status == DoseStatus.TAKEN) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(EmeraldTaken)
+                                .border(
+                                    width = 1.5.dp,
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = CircleShape
+                                )
+                                .testTag("taken_tick_badge_${dose.schedule.id}"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Check,
+                                contentDescription = strings.doseStatus(DoseStatus.TAKEN),
+                                tint = Color.White,
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                    }
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
