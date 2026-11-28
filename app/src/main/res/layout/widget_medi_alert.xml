@@ -14,11 +14,13 @@
         android:scaleType="centerCrop"
         android:src="@drawable/img_widget_med_bg" />
 
-    <!-- Subtle Dark Teal Gradient Scrim for High Contrast -->
-    <View
+    <!-- Subtle Dark Teal Gradient Scrim for High Contrast (ImageView required for RemoteViews) -->
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/widget_scrim_overlay" />
+        android:contentDescription="@null"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_scrim_overlay" />
 
     <!-- Foreground Content -->
     <LinearLayout
