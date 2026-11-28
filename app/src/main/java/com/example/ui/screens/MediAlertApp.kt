@@ -313,28 +313,33 @@ fun MediAlertApp(viewModel: MainViewModel) {
                         contentColor = MaterialTheme.colorScheme.onBackground,
                         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                         topBar = {
-                            MediAlertTopBar(
-                                title = when (currentTab) {
-                                    MainTab.TODAY -> strings.appName
-                                    MainTab.MEDICINES -> strings.navMedicines
-                                    MainTab.HISTORY -> strings.navHistory
-                                    MainTab.SETTINGS -> strings.navSettings
-                                },
-                                subtitle = if (currentTab == MainTab.TODAY) {
-                                    if (prefs.language == AppLanguage.BANGLA) "স্মার্ট অফলাইন পিল ট্র্যাকার" else "Smart Offline Pill Tracker"
-                                } else {
-                                    strings.appName
-                                },
-                                language = prefs.language,
-                                onToggleLanguage = {
-                                    val next = if (prefs.language == AppLanguage.ENGLISH) {
-                                        AppLanguage.BANGLA
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                MediAlertTopBar(
+                                    title = when (currentTab) {
+                                        MainTab.TODAY -> strings.appName
+                                        MainTab.MEDICINES -> strings.navMedicines
+                                        MainTab.HISTORY -> strings.navHistory
+                                        MainTab.SETTINGS -> strings.navSettings
+                                    },
+                                    subtitle = if (currentTab == MainTab.TODAY) {
+                                        if (prefs.language == AppLanguage.BANGLA) "স্মার্ট অফলাইন পিল ট্র্যাকার" else "Smart Offline Pill Tracker"
                                     } else {
-                                        AppLanguage.ENGLISH
+                                        strings.appName
+                                    },
+                                    language = prefs.language,
+                                    onToggleLanguage = {
+                                        val next = if (prefs.language == AppLanguage.ENGLISH) {
+                                            AppLanguage.BANGLA
+                                        } else {
+                                            AppLanguage.ENGLISH
+                                        }
+                                        viewModel.setLanguage(next)
                                     }
-                                    viewModel.setLanguage(next)
-                                }
-                            )
+                                )
+                                AdMobBannerBar(
+                                    visible = prefs.hasCompletedPermissionOnboarding
+                                )
+                            }
                         },
                         floatingActionButton = {
                             if (currentTab == MainTab.TODAY || currentTab == MainTab.MEDICINES) {
@@ -352,39 +357,29 @@ fun MediAlertApp(viewModel: MainViewModel) {
                             }
                         },
                         bottomBar = {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.85f))
-                                    .windowInsetsPadding(WindowInsets.navigationBars)
-                            ) {
-                                if (!useNavRail) {
-                                    NavigationBar(
-                                        containerColor = Color.Transparent,
-                                        contentColor = MaterialTheme.colorScheme.onSurface,
-                                        tonalElevation = 0.dp,
-                                        windowInsets = WindowInsets(0, 0, 0, 0)
-                                    ) {
-                                        MainTab.entries.forEach { tab ->
-                                            val selected = currentTab == tab
-                                            NavigationBarItem(
-                                                selected = selected,
-                                                onClick = { currentTab = tab },
-                                                icon = {
-                                                    Icon(
-                                                        imageVector = tabIcon(tab, selected),
-                                                        contentDescription = tabLabel(tab, strings)
-                                                    )
-                                                },
-                                                label = { Text(tabLabel(tab, strings)) },
-                                                modifier = Modifier.testTag("nav_${tab.name}")
-                                            )
-                                        }
+                            if (!useNavRail) {
+                                NavigationBar(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.80f),
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                    tonalElevation = 0.dp,
+                                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                                ) {
+                                    MainTab.entries.forEach { tab ->
+                                        val selected = currentTab == tab
+                                        NavigationBarItem(
+                                            selected = selected,
+                                            onClick = { currentTab = tab },
+                                            icon = {
+                                                Icon(
+                                                    imageVector = tabIcon(tab, selected),
+                                                    contentDescription = tabLabel(tab, strings)
+                                                )
+                                            },
+                                            label = { Text(tabLabel(tab, strings)) },
+                                            modifier = Modifier.testTag("nav_${tab.name}")
+                                        )
                                     }
                                 }
-                                AdMobBannerBar(
-                                    visible = prefs.hasCompletedPermissionOnboarding
-                                )
                             }
                         }
                     ) { innerPadding ->
