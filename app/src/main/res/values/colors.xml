@@ -7,4 +7,11 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Widget adaptive glass text colors (Light) -->
+    <color name="widget_accent">#085B63</color>
+    <color name="widget_text_primary">#0B2226</color>
+    <color name="widget_text_secondary">#36565C</color>
+    <color name="widget_countdown">#0A6C74</color>
+    <color name="widget_adherence_text">#047857</color>
 </resources>

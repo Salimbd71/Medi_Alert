@@ -10,6 +10,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.os.Build
+import android.view.View
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -145,8 +147,8 @@ object NotificationHelper {
             notificationId = notificationId
         )
 
-        val takenLabel = if (language == AppLanguage.BANGLA) "খাওয়া হয়েছে" else "Taken"
-        val snoozeLabel = if (language == AppLanguage.BANGLA) "স্নুজ ১০ মি." else "Snooze 10m"
+        val takenLabel = if (language == AppLanguage.BANGLA) "খেয়েছি" else "Taken"
+        val snoozeLabel = if (language == AppLanguage.BANGLA) "স্নুজ ১০মি" else "Snooze 10m"
         val skipLabel = if (language == AppLanguage.BANGLA) "বাদ দিন" else "Skip"
 
         val mealText = formatMealTiming(medicine.mealTiming, language)
@@ -156,17 +158,31 @@ object NotificationHelper {
         } else {
             "Medicine Time: ${medicine.name}"
         }
-        val body = if (language == AppLanguage.BANGLA) {
-            "${patient.name} • ${medicine.dosageAmount} ${medicine.dosageUnit} • $mealText ($timeText)"
-        } else {
-            "${patient.name} • ${medicine.dosageAmount} ${medicine.dosageUnit} • $mealText ($timeText)"
+        val body = "${patient.name} • ${medicine.dosageAmount} ${medicine.dosageUnit} • $mealText ($timeText)"
+
+        val compactView = RemoteViews(context.packageName, R.layout.notification_alarm_compact).apply {
+            setTextViewText(R.id.notif_title, title)
+            setTextViewText(R.id.notif_body, body)
+        }
+        val actionsView = RemoteViews(context.packageName, R.layout.notification_alarm_actions).apply {
+            setTextViewText(R.id.notif_title, title)
+            setTextViewText(R.id.notif_body, body)
+            setTextViewText(R.id.notif_btn_taken, takenLabel)
+            setTextViewText(R.id.notif_btn_snooze, snoozeLabel)
+            setTextViewText(R.id.notif_btn_skip, skipLabel)
+            setOnClickPendingIntent(R.id.notif_btn_taken, takenIntent)
+            setOnClickPendingIntent(R.id.notif_btn_snooze, snoozeIntent)
+            setOnClickPendingIntent(R.id.notif_btn_skip, skipIntent)
         }
 
         return NotificationCompat.Builder(context, CHANNEL_SERVICE_ID)
             .setSmallIcon(R.drawable.ic_stat_medi_alert)
             .setContentTitle(title)
             .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .setCustomContentView(compactView)
+            .setCustomBigContentView(actionsView)
+            .setCustomHeadsUpContentView(actionsView)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -174,9 +190,6 @@ object NotificationHelper {
             .setAutoCancel(false)
             .setFullScreenIntent(fullScreenPendingIntent, true)
             .setContentIntent(fullScreenPendingIntent)
-            .addAction(0, takenLabel, takenIntent)
-            .addAction(0, snoozeLabel, snoozeIntent)
-            .addAction(0, skipLabel, skipIntent)
             .build()
     }
 
@@ -224,8 +237,8 @@ object NotificationHelper {
             notificationId = notifId
         )
 
-        val takenLabel = if (language == AppLanguage.BANGLA) "এখনই খেয়েছি" else "Mark Taken"
-        val snoozeLabel = if (language == AppLanguage.BANGLA) "স্নুজ ১০ মি." else "Snooze 10m"
+        val takenLabel = if (language == AppLanguage.BANGLA) "খেয়েছি" else "Taken"
+        val snoozeLabel = if (language == AppLanguage.BANGLA) "স্নুজ ১০মি" else "Snooze 10m"
 
         val timeText = TimeFormatter.formatTime(schedule.hour, schedule.minute, language)
         val title = if (language == AppLanguage.BANGLA) {
@@ -239,16 +252,31 @@ object NotificationHelper {
             "${patient.name} missed the $timeText dose (${medicine.dosageAmount} ${medicine.dosageUnit})."
         }
 
+        val compactView = RemoteViews(context.packageName, R.layout.notification_alarm_compact).apply {
+            setTextViewText(R.id.notif_title, title)
+            setTextViewText(R.id.notif_body, body)
+        }
+        val actionsView = RemoteViews(context.packageName, R.layout.notification_alarm_actions).apply {
+            setTextViewText(R.id.notif_title, title)
+            setTextViewText(R.id.notif_body, body)
+            setTextViewText(R.id.notif_btn_taken, takenLabel)
+            setTextViewText(R.id.notif_btn_snooze, snoozeLabel)
+            setViewVisibility(R.id.notif_btn_skip, View.GONE)
+            setOnClickPendingIntent(R.id.notif_btn_taken, takenIntent)
+            setOnClickPendingIntent(R.id.notif_btn_snooze, snoozeIntent)
+        }
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ALERTS_ID)
             .setSmallIcon(R.drawable.ic_stat_medi_alert)
             .setContentTitle(title)
             .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .setCustomContentView(compactView)
+            .setCustomBigContentView(actionsView)
+            .setCustomHeadsUpContentView(actionsView)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(openAppIntent)
-            .addAction(0, takenLabel, takenIntent)
-            .addAction(0, snoozeLabel, snoozeIntent)
             .build()
 
         NotificationManagerCompat.from(context).notify(notifId, notification)
